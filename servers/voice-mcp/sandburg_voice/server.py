@@ -13,6 +13,7 @@ Relative paths are resolved against SANDBURG_PROJECTS (default: /workspace/proje
 
 from __future__ import annotations
 
+import functools
 import gc
 import os
 import re
@@ -25,6 +26,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from mcp.server.mcpserver import MCPServer
+from mcp.server.mcpserver.exceptions import ToolError
 
 PROJECTS = Path(os.environ.get("SANDBURG_PROJECTS", "/workspace/projects"))
 AUDIO_DIR = PROJECTS / "audio"
@@ -213,7 +215,26 @@ def to_srt(chunks: list[dict]) -> str:
 # --- Tools --------------------------------------------------------------------
 
 
-@server.tool()
+def tool(fn: Any) -> Any:
+    """Register fn as a tool whose errors reach the client with their message.
+
+    The MCP SDK reports anything but ToolError only as "Error executing tool <name>",
+    which hides both our own ValueErrors and the cause of crashes.
+    """
+
+    @functools.wraps(fn)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        try:
+            return fn(*args, **kwargs)
+        except ToolError:
+            raise
+        except Exception as exc:
+            raise ToolError(f"{type(exc).__name__}: {exc}") from exc
+
+    return server.tool()(wrapper)
+
+
+@tool
 def speak(
     text: str,
     language: str | None = None,
@@ -275,7 +296,7 @@ def speak(
     }
 
 
-@server.tool()
+@tool
 def list_voices() -> dict:
     """List the available Kokoro voices (grouped by language) and the supported languages.
 
@@ -301,7 +322,7 @@ def list_voices() -> dict:
     }
 
 
-@server.tool()
+@tool
 def transcribe(
     audio: str,
     language: str | None = None,
@@ -345,7 +366,7 @@ def transcribe(
     return answer
 
 
-@server.tool()
+@tool
 def unload_models() -> dict:
     """Remove the speech models from (GPU) memory immediately."""
     return {"unloaded": MODELS.unload()}
