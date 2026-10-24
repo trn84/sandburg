@@ -59,7 +59,7 @@ The image is large (roughly 18 GB, mostly PyTorch, FreeCAD and Chromium). `--bui
 Create a key at <https://login.tailscale.com/admin/settings/keys>:
 
 - **Reusable**, so every new pod can join.
-- **Ephemeral**, so terminated pods disappear from the tailnet automatically.
+- **Ephemeral**, so pods that were killed without shutting down disappear from the tailnet after 30–60 minutes. A pod that is stopped normally logs out and disappears at once.
 - Optionally a **tag** such as `tag:sandburg`, to restrict access to your devices via ACL.
 
 Tailscale runs in userspace mode and needs neither `/dev/net/tun` nor extra privileges.
@@ -74,7 +74,7 @@ Tailscale runs in userspace mode and needs neither `/dev/net/tun` nor extra priv
 | Expose HTTP/TCP Ports | **none**, everything goes through Tailscale |
 | Environment Variables | `TS_AUTHKEY` (ideally as a RunPod secret); optional `SANDBURG_TOKEN`, `TS_HOSTNAME`, `ENABLE_VOICE=1`, `ENABLE_COMFYUI_3D=1` |
 
-After the first start the token is stored in `/workspace/.sandburg-token`, unless you set `SANDBURG_TOKEN` yourself. With a volume, the token, Tailscale identity, browser profile, projects and models persist across restarts.
+After the first start the token is stored in `/workspace/.sandburg-token`, unless you set `SANDBURG_TOKEN` yourself. With a volume, the token, browser profile, projects and models persist across restarts. The Tailscale node does not, unless you set `TS_STATE_DIR`: each start joins as a new ephemeral node under the same name.
 
 ## 4. Connect Claude Code
 
@@ -144,6 +144,7 @@ Also:
 | `TS_AUTHKEY` | – | Tailscale auth key; empty = Tailscale off |
 | `TS_HOSTNAME` | `sandburg` | Name in the tailnet |
 | `TS_EXTRA_ARGS` | – | Extra arguments for `tailscale up`, e.g. `--ssh` |
+| `TS_STATE_DIR` | – (in memory) | Keep the Tailscale node across restarts, e.g. `/workspace/.tailscale`. Without it the pod logs out when it stops and leaves the tailnet immediately |
 | `SANDBURG_TOKEN` | generated | Token for the MCP proxy and file server. At least 16 characters, only `A-Z a-z 0-9 . _ ~ -` |
 | `VNC_PASSWORD` | generated | Password for the desktop |
 | `ENABLE_BLENDER`, `_FREECAD`, `_KICAD`, `_BUILD123D`, `_INKSCAPE`, `_BROWSER`, `_COMFYUI`, `_VNC`, `_FILES` | `1` | Disable individual services (`0`) |
