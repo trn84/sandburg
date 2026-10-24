@@ -25,6 +25,30 @@ fi
 tailscaled --tun=userspace-networking "${state[@]}" --socket="${sock}" &
 ts_pid=$!
 
+# On stop: log out first (removes the ephemeral node at once), then stop
+# tailscaled. Logged to the volume, since the container log is gone afterwards.
+shutdown_log="${WORKSPACE}/.sandburg/shutdown.log"
+note() {
+    log "$*"
+    mkdir -p "$(dirname "${shutdown_log}")"
+    printf '%s %s\n' "$(date -Is)" "$*" >> "${shutdown_log}"
+}
+leave() {
+    note "Stop received, leaving the tailnet"
+    if [ -z "${TS_STATE_DIR:-}" ]; then
+        if timeout 5 tailscale --socket="${sock}" logout; then
+            note "Logged out of the tailnet"
+        else
+            note "WARNING: logout failed – the node disappears only after 30–60 minutes"
+        fi
+    fi
+    kill -TERM "${ts_pid}" 2> /dev/null || true
+    wait "${ts_pid}" || true
+    note "tailscaled stopped"
+    exit 0
+}
+trap leave TERM INT
+
 for _ in $(seq 1 30); do
     [ -S "${sock}" ] && break
     sleep 1
