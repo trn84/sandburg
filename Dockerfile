@@ -13,8 +13,19 @@ ARG CUDA_BASE=nvidia/cuda:12.8.1-base-ubuntu24.04
 # Stage 1: mcp-proxy (bundles all stdio MCP servers behind one HTTP port)
 # ---------------------------------------------------------------------------
 FROM golang:1.26 AS mcp-proxy
-ARG MCP_PROXY_VERSION=latest
-RUN CGO_ENABLED=0 GOBIN=/out go install github.com/tbxark/mcp-proxy@${MCP_PROXY_VERSION}
+ARG MCP_PROXY_VERSION=v1.1.0
+# mcp-go rejects requests that arrive on a loopback address with a non-localhost
+# Host header (DNS rebinding protection). Tailscale's userspace mode delivers
+# every tailnet connection to 127.0.0.1 with Host "sandburg", so all requests
+# would fail with 403. The protection is redundant here because every request
+# needs the bearer token, which is checked first. mcp-proxy has no option for
+# this, so it is patched in; the grep fails the build if the patch stops applying.
+RUN git clone --depth 1 --branch "${MCP_PROXY_VERSION}" https://github.com/tbxark/mcp-proxy.git /src \
+    && cd /src \
+    && sed -i 's/^\(\s*\)server\.WithStateLess(true),$/&\n\1server.WithDisableLocalhostProtection(true),/' client.go \
+    && grep -q 'server.WithDisableLocalhostProtection(true),' client.go \
+    && CGO_ENABLED=0 go build -o /out/mcp-proxy . \
+    && /out/mcp-proxy -version
 
 # ---------------------------------------------------------------------------
 # Stage 2: the Sandburg itself
@@ -105,9 +116,6 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 RUN curl -fsSL "https://github.com/sigoden/dufs/releases/download/v${DUFS_VERSION}/dufs-v${DUFS_VERSION}-x86_64-unknown-linux-musl.tar.gz" \
         | tar -xz -C /usr/local/bin dufs \
     && dufs --version
-
-# --- mcp-proxy ----------------------------------------------------------------
-COPY --from=mcp-proxy /out/mcp-proxy /usr/local/bin/mcp-proxy
 
 # --- Tailscale ----------------------------------------------------------------
 RUN curl -fsSL https://tailscale.com/install.sh | sh \
@@ -210,6 +218,9 @@ COPY servers/ /opt/sandburg/servers/
 RUN uv tool install --python /usr/bin/python3 /opt/sandburg/servers/inkscape-mcp \
     && uv tool install --python /usr/bin/python3 /opt/sandburg/servers/disabled-mcp \
     && uv cache clean
+
+# --- mcp-proxy (late, so a patch or version bump keeps the cache above) -------
+COPY --from=mcp-proxy /out/mcp-proxy /usr/local/bin/mcp-proxy
 
 # --- Custom scripts & configuration ------------------------------------------
 COPY rootfs/ /
