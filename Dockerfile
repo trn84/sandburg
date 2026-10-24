@@ -227,3 +227,9 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=3 \
     CMD curl -fsS http://127.0.0.1:9090/_healthz > /dev/null || exit 1
 
 ENTRYPOINT ["/opt/sandburg/bin/entrypoint.sh"]
+
+# Links the image to the repository on GitHub, also for locally pushed builds.
+# Kept at the end so changing it doesn't invalidate the build cache.
+LABEL org.opencontainers.image.source="https://github.com/trn84/sandburg" \
+      org.opencontainers.image.description="Blender, FreeCAD, KiCad, build123d, Inkscape, ComfyUI and a browser with MCP servers for Claude Code" \
+      org.opencontainers.image.licenses="MIT"
