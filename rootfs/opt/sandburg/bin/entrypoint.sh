@@ -122,7 +122,8 @@ servers="$(jq -r '.mcpServers | to_entries[] | select(.value.command != "/usr/lo
     echo " Active services: ${servers}"
     echo
     echo " Connect Claude Code (run locally, asks for host and token):"
-    echo "   claude plugin install sandburg --marketplace <github-user>/sandburg"
+    echo "   claude plugin marketplace add trn84/sandburg"
+    echo "   claude plugin install sandburg@sandburg"
     echo
     if enabled ENABLE_FILES; then
         echo " Files (browser/WebDAV): http://${host}:8090  user: sandburg, password: token"

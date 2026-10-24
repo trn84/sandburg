@@ -81,12 +81,13 @@ After the first start the token is stored in `/workspace/.sandburg-token`, unles
 On your machine (which must be in the same tailnet):
 
 ```bash
-claude plugin install sandburg --marketplace <github-user>/sandburg
+claude plugin marketplace add trn84/sandburg
+claude plugin install sandburg@sandburg
 ```
 
-Or in a running session: `/plugin install sandburg --marketplace <github-user>/sandburg`.
+Or in a running session: `/plugin marketplace add trn84/sandburg`, then `/plugin install sandburg@sandburg`.
 
-Claude Code asks for the address (default `sandburg`, i.e. the Tailscale name) and the token. After that, all services are connected. The plugin also ships a skill that explains the folders and workflows on the Sandburg to Claude, and the `sandburg` command for file transfer. Address and token can be changed later under `/plugin` → **Installed** → *sandburg* → **Configure options**.
+Then set the address (default `sandburg`, i.e. the Tailscale name) and the token (`cat /workspace/.sandburg-token` on the pod) in a Claude Code session with `/plugin configure sandburg@sandburg`. The token is stored in the system keychain. After that, all services are connected. The plugin also ships a skill that explains the folders and workflows on the Sandburg to Claude, and the `sandburg` command for file transfer. Address and token can be changed later under `/plugin` → **Installed** → *sandburg* → **Configure options**.
 
 It also works without the plugin: copy `client/mcp.json.example` into your project as `.mcp.json` and set `SANDBURG_TOKEN` in your shell.
 

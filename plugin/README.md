@@ -9,14 +9,15 @@ skill that explains the folders and workflows on the Sandburg to Claude, and the
 ## Installation
 
 ```bash
-claude plugin install sandburg --marketplace <github-user>/sandburg
+claude plugin marketplace add trn84/sandburg
+claude plugin install sandburg@sandburg
 ```
 
-Or in a running Claude Code session: `/plugin install sandburg --marketplace <github-user>/sandburg`.
+Or in a running Claude Code session: `/plugin marketplace add trn84/sandburg`, then `/plugin install sandburg@sandburg`.
 
-When enabling the plugin, Claude Code asks for the Sandburg's address (default `sandburg`) and
-the token from `/workspace/.sandburg-token`. The token is stored in the system
-keychain. A session-start hook also writes address and token to
+After installing, set the Sandburg's address (default `sandburg`) and the token from
+`/workspace/.sandburg-token` in a Claude Code session with `/plugin configure sandburg@sandburg`.
+The token is stored in the system keychain. A session-start hook also writes address and token to
 `~/.config/sandburg/config` (readable only by you), because the `sandburg` command could
 not reach them otherwise.
 
