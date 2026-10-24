@@ -75,6 +75,20 @@ done
 jq "${filter}" /opt/sandburg/mcp-proxy.template.json > /run/sandburg/mcp-proxy.json
 mcp-proxy -config /run/sandburg/mcp-proxy.json -check-config
 
+# --- Warn about listen addresses that are never needed on a pod --------------
+is_loopback() {
+    case "$1" in
+        127.* | localhost | ::1) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+if [ -n "${TS_AUTHKEY:-}" ] && ! is_loopback "${BIND_ADDR}"; then
+    log "WARNING: BIND_ADDR=${BIND_ADDR} while Tailscale is active. Tailscale already forwards to 127.0.0.1, so this only makes the MCP proxy and file server reachable outside the tailnet. Leave BIND_ADDR at 127.0.0.1."
+fi
+if ! is_loopback "${UI_BIND_ADDR:-127.0.0.1}"; then
+    log "WARNING: UI_BIND_ADDR=${UI_BIND_ADDR}: noVNC and ComfyUI listen beyond localhost, and ComfyUI has no authentication. Only meant for local docker compose; never expose ports 6080 or 8188."
+fi
+
 # --- Summary in the container log --------------------------------------------
 host="${TS_HOSTNAME:-sandburg}"
 servers="$(jq -r '.mcpServers | to_entries[] | select(.value.command != "/usr/local/bin/sandburg-disabled-mcp") | .key' /run/sandburg/mcp-proxy.json | sort | tr '\n' ' ')"

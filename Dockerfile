@@ -55,6 +55,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     DISPLAY=:99 \
     XDG_RUNTIME_DIR=/tmp/runtime-root \
     BIND_ADDR=127.0.0.1 \
+    UI_BIND_ADDR=127.0.0.1 \
     TS_HOSTNAME=sandburg \
     ENABLE_BLENDER=1 \
     ENABLE_FREECAD=1 \

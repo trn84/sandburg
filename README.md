@@ -150,7 +150,8 @@ Chatterbox adds an inaudible watermark to its output.
 | `VOICE_IDLE_MINUTES` | `10` | Unload speech models after this many minutes without a call (`0` = never) |
 | `BROWSER_VIEWPORT` | `1440x900` | Browser window size |
 | `BROWSER_MCP_ARGS` | – | Extra arguments for Playwright MCP, e.g. `--blocked-origins` |
-| `BIND_ADDR` | `127.0.0.1` | Listen address for the proxy, file server, noVNC and ComfyUI. `0.0.0.0` only without Tailscale |
+| `BIND_ADDR` | `127.0.0.1` | Listen address for the MCP proxy and file server (both token-protected). `0.0.0.0` only without Tailscale |
+| `UI_BIND_ADDR` | `127.0.0.1` | Listen address for noVNC and ComfyUI. ComfyUI has no authentication, so only change this for local `docker compose` |
 | `COMFYUI_ARGS`, `BLENDER_ARGS`, `FREECAD_ARGS` | – | Extra startup arguments |
 | `BLENDER_MCP_SAFE_MODE` | `0` | `1` = check Blender scripts before execution |
 | `XVFB_RESOLUTION` | `1920x1080x24` | Resolution of the virtual desktop |
@@ -160,7 +161,7 @@ Chatterbox adds an inaudible watermark to its output.
 - **Python execution:** Several services run arbitrary Python code (`execute_blender_code`, `execute_code` in FreeCAD, build123d). Anyone who can reach the proxy and has the token effectively has a shell on the pod.
 - **The tailnet is the security boundary.** In userspace mode, Tailscale forwards all locally listening ports into the tailnet, including the internal bridges of Blender (9876) and FreeCAD (9875), which have no authentication of their own. Restrict access to the pod to your own devices with a [Tailscale ACL](https://tailscale.com/kb/1018/acls).
 - **Browser and third-party websites:** Third-party pages may try to slip instructions to Claude (prompt injection), and the same session has tools that execute code. The pod is an isolated, disposable environment, but still: don't store important logins (Google, banking, company accounts) in the pod's browser.
-- **Don't expose ports in RunPod.** As an exception, without Tailscale: `BIND_ADDR=0.0.0.0`, expose only ports 9090 and 8090, and use a long `SANDBURG_TOKEN`.
+- **Don't expose ports in RunPod.** As an exception, without Tailscale: `BIND_ADDR=0.0.0.0`, expose only ports 9090 and 8090, and use a long `SANDBURG_TOKEN`. noVNC and ComfyUI stay bound to `127.0.0.1` (`UI_BIND_ADDR`) and are not reachable from outside in this mode, even if their ports are exposed.
 - **Token on your machine:** The plugin also stores the token in `~/.config/sandburg/config` (readable only by you) so the `sandburg` command can use it.
 
 ## Troubleshooting
