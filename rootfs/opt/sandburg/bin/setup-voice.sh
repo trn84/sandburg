@@ -31,7 +31,9 @@ else
     printf '%s' "${stamp}" > "${venv}/.sandburg-stamp"
 fi
 
+# preshed 3.0.14 breaks loading the spaCy model ("OverflowError: Python int too
+# large to convert to C ssize_t"). Outside the stamp, so existing venvs get it too.
 uv pip install --python "${venv}/bin/python" --reinstall-package sandburg-voice-mcp \
-    /opt/sandburg/servers/voice-mcp
+    "preshed==3.0.13" /opt/sandburg/servers/voice-mcp
 touch "${venv}/.sandburg-ready"
 log "Voice ready. Models are loaded on the first call (including download the first time)."
