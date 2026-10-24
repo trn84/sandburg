@@ -50,7 +50,7 @@ wait_for_x() {
     return 1
 }
 
-# Forces Mesa (llvmpipe) for the GUI under Xvfb. GPU rendering
+# Forces Mesa (llvmpipe) for Xvfb and the GUIs running on it. GPU rendering
 # (Cycles/CUDA/OptiX, PyTorch) is not affected by this.
 use_mesa_gl() {
     export __GLX_VENDOR_LIBRARY_NAME=mesa
