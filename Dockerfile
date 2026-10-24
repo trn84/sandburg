@@ -137,7 +137,8 @@ RUN add-apt-repository -y "ppa:kicad/${KICAD_PPA}" \
 RUN git clone --depth 1 --branch "${KICAD_MCP_REF}" https://github.com/Seeed-Studio/kicad-mcp-server.git /opt/kicad-mcp/src \
     && uv venv --system-site-packages --python /usr/bin/python3 /opt/kicad-mcp/.venv \
     && uv pip install --python /opt/kicad-mcp/.venv/bin/python /opt/kicad-mcp/src \
-    && /opt/kicad-mcp/.venv/bin/python -c "import kicad_mcp_server, pcbnew; print('kicad-mcp ok')"
+    && /opt/kicad-mcp/.venv/bin/python -c "import kicad_mcp_server, pcbnew; print('kicad-mcp ok')" \
+    && uv cache clean
 
 # --- Blender ------------------------------------------------------------------
 RUN series="${BLENDER_VERSION%.*}" \
@@ -155,7 +156,8 @@ RUN uv tool install --python /usr/bin/python3 "mcp-for-blender==${BLENDER_MCP_VE
     && mkdir -p "${dest}" \
     && cp "${addon}" "${dest}/blender_mcp.py" \
     && blender -b --factory-startup --python-exit-code 1 --addons blender_mcp --python-expr \
-        "import addon_utils; assert addon_utils.check('blender_mcp')[1], 'blender_mcp addon not loaded'; print('blender_mcp addon ok')"
+        "import addon_utils; assert addon_utils.check('blender_mcp')[1], 'blender_mcp addon not loaded'; print('blender_mcp addon ok')" \
+    && uv cache clean
 
 # --- FreeCAD (AppImage, extracted -> no FUSE needed) ---------------------------
 RUN curl -fL -o /tmp/FreeCAD.AppImage "${FREECAD_URL}" \
@@ -176,11 +178,13 @@ RUN git clone --depth 1 --branch "${FREECAD_MCP_REF}" https://github.com/neka-na
     && grep -q '"auto_start_rpc": True' "${moddir}/FreeCADMCP/rpc_server/settings.py" \
     && uv tool install --python /usr/bin/python3 /tmp/freecad-mcp \
     && rm -rf /tmp/freecad-mcp \
+    && uv cache clean \
     && echo "FreeCADMCP addon -> ${moddir}"
 
 # --- build123d-MCP (CAD as Python code) ---------------------------------------
 RUN uv tool install --python /usr/bin/python3 "build123d-mcp==${BUILD123D_MCP_VERSION}" \
-    && build123d-mcp --version
+    && build123d-mcp --version \
+    && uv cache clean
 
 # --- Inkscape (command line) + Python packages for the export extensions ------
 RUN add-apt-repository -y "ppa:${INKSCAPE_PPA}" \
