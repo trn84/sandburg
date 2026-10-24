@@ -1,0 +1,158 @@
+#!/usr/bin/env bash
+# sandburg – exchange files with the Sandburg and check its status.
+#
+#   sandburg ls [folder]              List the contents of a folder
+#   sandburg get <path> [dest]        Download a file; folders arrive as .zip
+#   sandburg put <file> [destpath]    Upload a file (destination folder is created)
+#   sandburg url <path>               Print the download URL (without credentials)
+#   sandburg status                   Check reachability and active services
+#
+# Paths are relative to /workspace/projects on the Sandburg, e.g. freecad/part.stl.
+# Host and token come from SANDBURG_HOST/SANDBURG_TOKEN or from
+# ~/.config/sandburg/config (written by the Claude Code plugin at session start).
+set -euo pipefail
+
+config="${XDG_CONFIG_HOME:-${HOME}/.config}/sandburg/config"
+if [ -f "${config}" ]; then
+    # shellcheck disable=SC1090
+    source "${config}"
+fi
+host="${SANDBURG_HOST:-${host:-sandburg}}"
+token="${SANDBURG_TOKEN:-${token:-}}"
+files="http://${host}:8090"
+proxy="http://${host}:9090"
+
+die() {
+    echo "sandburg: $*" >&2
+    exit 1
+}
+
+usage() {
+    sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
+    exit "${1:-0}"
+}
+
+need_token() {
+    [ -n "${token}" ] || die "no token. Set the plugin option 'token' or export SANDBURG_TOKEN."
+}
+
+# URL-encode path segments, keeping slashes
+urlpath() {
+    local path="${1#/}" out="" i c
+    path="${path#workspace/projects/}"
+    for ((i = 0; i < ${#path}; i++)); do
+        c="${path:i:1}"
+        case "${c}" in
+            [a-zA-Z0-9._~/-]) out+="${c}" ;;
+            *) out+="$(printf '%%%02X' "'${c}")" ;;
+        esac
+    done
+    printf '%s' "${out}"
+}
+
+# curl with credentials passed via a config file so the token doesn't
+# show up in the process list
+fcurl() {
+    curl -fsS --config <(printf 'user = "sandburg:%s"\n' "${token}") "$@"
+}
+
+# With ?json, directories return a listing ("paths"), files only their metadata
+is_dir() {
+    fcurl "${files}/$(urlpath "$1")?json" 2> /dev/null | grep -q '"paths"'
+}
+
+# After an error: a readable cause instead of just "curl: (22)"
+explain() {
+    local code
+    code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
+        --config <(printf 'user = "sandburg:%s"\n' "${token}") "$1" 2> /dev/null || true)"
+    case "${code}" in
+        401 | 403) die "login rejected – check the token" ;;
+        404) die "not found: $2" ;;
+        000) die "Sandburg at ${host} not reachable – is the pod running, and is this machine in the tailnet?" ;;
+        *) die "error (HTTP ${code}) for: $2" ;;
+    esac
+}
+
+cmd_ls() {
+    need_token
+    local json
+    json="$(fcurl "${files}/$(urlpath "${1:-}")?json" 2> /dev/null)" || explain "${files}/$(urlpath "${1:-}")?json" "${1:-/}"
+    if command -v jq > /dev/null; then
+        jq -r '.paths[] | [(if .path_type == "Dir" then "dir " else "file" end), (.size // 0 | tostring), .name] | @tsv' <<< "${json}" |
+            awk -F'\t' '{ printf "%s  %12s  %s%s\n", $1, ($1 == "dir " ? "-" : $2), $3, ($1 == "dir " ? "/" : "") }'
+    else
+        printf '%s\n' "${json}"
+    fi
+}
+
+cmd_get() {
+    need_token
+    local src="${1:-}" dest="${2:-}"
+    [ -n "${src}" ] || die "usage: sandburg get <path> [dest]"
+    src="${src%/}"
+    if is_dir "${src}"; then
+        dest="${dest:-$(basename "${src}").zip}"
+        [ -d "${dest}" ] && dest="${dest%/}/$(basename "${src}").zip"
+        if fcurl -o "${dest}.part" "${files}/$(urlpath "${src}")?zip" 2> /dev/null; then
+            mv -f "${dest}.part" "${dest}"
+        else
+            rm -f "${dest}.part"
+            explain "${files}/$(urlpath "${src}")?zip" "${src}"
+        fi
+    else
+        dest="${dest:-$(basename "${src}")}"
+        [ -d "${dest}" ] && dest="${dest%/}/$(basename "${src}")"
+        # download to a partial file first so a failure doesn't destroy an existing file
+        if fcurl -o "${dest}.part" "${files}/$(urlpath "${src}")" 2> /dev/null; then
+            mv -f "${dest}.part" "${dest}"
+        else
+            rm -f "${dest}.part"
+            explain "${files}/$(urlpath "${src}")" "${src}"
+        fi
+    fi
+    echo "${dest}"
+}
+
+cmd_put() {
+    need_token
+    local src="${1:-}" dest="${2:-}"
+    [ -f "${src}" ] || die "local file not found: ${src:-<empty>}"
+    if [ -z "${dest}" ] || [[ "${dest}" == */ ]]; then
+        dest="${dest}$(basename "${src}")"
+    fi
+    fcurl -T "${src}" "${files}/$(urlpath "${dest}")" > /dev/null 2>&1 || explain "${files}/" "${dest}"
+    echo "/workspace/projects/${dest#/}"
+}
+
+cmd_url() {
+    [ -n "${1:-}" ] || die "usage: sandburg url <path>"
+    echo "${files}/$(urlpath "$1")"
+}
+
+cmd_status() {
+    local ready
+    if ! ready="$(curl -sS --max-time 10 "${proxy}/_readyz" 2>&1)"; then
+        die "Sandburg at ${host} not reachable (${ready}). Is the pod running, and is this machine in the tailnet?"
+    fi
+    echo "Sandburg ${host}: ${ready}"
+    if [ -n "${token}" ]; then
+        if fcurl -o /dev/null "${files}/?json" 2> /dev/null; then
+            echo "File server: ok"
+        else
+            echo "File server: login failed – check the token"
+        fi
+    else
+        echo "File server: no token set"
+    fi
+}
+
+case "${1:-}" in
+    ls) shift; cmd_ls "$@" ;;
+    get) shift; cmd_get "$@" ;;
+    put) shift; cmd_put "$@" ;;
+    url) shift; cmd_url "$@" ;;
+    status) shift; cmd_status "$@" ;;
+    -h | --help | help | "") usage 0 ;;
+    *) echo "sandburg: unknown command '$1'" >&2; usage 1 ;;
+esac

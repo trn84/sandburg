@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# build123d MCP with /workspace/projects/build123d as working directory, so that
+# exports with relative paths end up there and can be fetched via the file server.
+set -euo pipefail
+dir="${WORKSPACE:-/workspace}/projects/build123d"
+mkdir -p "${dir}"
+cd "${dir}"
+exec /usr/local/bin/build123d-mcp "$@"

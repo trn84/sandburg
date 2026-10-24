@@ -1,0 +1,97 @@
+{
+  "name": "sandburg",
+  "displayName": "Sandburg",
+  "version": "0.1.0",
+  "description": "Connects Claude Code to a Sandburg in the cloud: Blender, FreeCAD, KiCad, build123d, Inkscape, ComfyUI, a browser and speech output via MCP, plus file transfer.",
+  "author": {
+    "name": "Sandburg contributors"
+  },
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "blender",
+    "freecad",
+    "kicad",
+    "build123d",
+    "inkscape",
+    "comfyui",
+    "playwright",
+    "tts",
+    "runpod",
+    "tailscale"
+  ],
+  "userConfig": {
+    "host": {
+      "type": "string",
+      "title": "Sandburg address",
+      "description": "Tailscale name (MagicDNS) or IP address of the Sandburg, e.g. sandburg or 100.64.0.12",
+      "default": "sandburg",
+      "required": true
+    },
+    "token": {
+      "type": "string",
+      "title": "Sandburg token",
+      "description": "Contents of /workspace/.sandburg-token on the pod (or your own SANDBURG_TOKEN)",
+      "sensitive": true,
+      "required": true
+    }
+  },
+  "mcpServers": {
+    "blender": {
+      "type": "http",
+      "url": "http://${user_config.host}:9090/blender/mcp",
+      "headers": {
+        "Authorization": "Bearer ${user_config.token}"
+      }
+    },
+    "freecad": {
+      "type": "http",
+      "url": "http://${user_config.host}:9090/freecad/mcp",
+      "headers": {
+        "Authorization": "Bearer ${user_config.token}"
+      }
+    },
+    "kicad": {
+      "type": "http",
+      "url": "http://${user_config.host}:9090/kicad/mcp",
+      "headers": {
+        "Authorization": "Bearer ${user_config.token}"
+      }
+    },
+    "comfyui": {
+      "type": "http",
+      "url": "http://${user_config.host}:9090/comfyui/mcp",
+      "headers": {
+        "Authorization": "Bearer ${user_config.token}"
+      }
+    },
+    "build123d": {
+      "type": "http",
+      "url": "http://${user_config.host}:9090/build123d/mcp",
+      "headers": {
+        "Authorization": "Bearer ${user_config.token}"
+      }
+    },
+    "inkscape": {
+      "type": "http",
+      "url": "http://${user_config.host}:9090/inkscape/mcp",
+      "headers": {
+        "Authorization": "Bearer ${user_config.token}"
+      }
+    },
+    "browser": {
+      "type": "http",
+      "url": "http://${user_config.host}:9090/browser/mcp",
+      "headers": {
+        "Authorization": "Bearer ${user_config.token}"
+      }
+    },
+    "voice": {
+      "type": "http",
+      "url": "http://${user_config.host}:9090/voice/mcp",
+      "headers": {
+        "Authorization": "Bearer ${user_config.token}"
+      }
+    }
+  }
+}

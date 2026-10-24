@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Sandburg</title>
+  <rect width="512" height="512" rx="116" fill="#FCE6BF"/>
+  <g transform="translate(256 262) scale(0.88) translate(-256 -250)">
+  <defs>
+    <mask id="icut" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      <rect width="512" height="512" fill="#fff"/>
+      <!-- Gate -->
+      <path d="M234 330 v-30 a22 22 0 0 1 44 0 v30 Z" fill="#000"/>
+      <!-- Circuit trace (electronics) in the left tower -->
+      <g stroke="#000" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M128 258 H146 L160 272 V298"/>
+      </g>
+      <circle cx="128" cy="258" r="9" fill="#000"/>
+      <circle cx="160" cy="300" r="9" fill="#000"/>
+      <!-- Cube (3D/CAD) in the right tower -->
+      <g stroke="#000" stroke-width="7" fill="none" stroke-linejoin="round" stroke-linecap="round">
+        <path d="M367 252 L388 264 V288 L367 300 L346 288 V264 Z"/>
+        <path d="M346 264 L367 276 L388 264 M367 276 V300"/>
+      </g>
+      <!-- Connected nodes (AI workflows) in the keep -->
+      <g stroke="#000" stroke-width="6" fill="none" stroke-linejoin="round">
+        <path d="M236 192 L278 204 L252 240 Z"/>
+      </g>
+      <circle cx="236" cy="192" r="10" fill="#000"/>
+      <circle cx="278" cy="204" r="10" fill="#000"/>
+      <circle cx="252" cy="240" r="10" fill="#000"/>
+    </mask>
+  </defs>
+  <!-- Flag -->
+  <rect x="253" y="52" width="7" height="80" rx="3.5" fill="#D9772E"/>
+  <path d="M260 56 L318 74 L260 92 Z" fill="#1A8FA0"/>
+  <!-- Castle made of bucket shapes -->
+  <g fill="#D9772E" mask="url(#icut)">
+    <path d="M94 410 L106 222 h12 v-26 h18 v26 h12 v-26 h18 v26 h12 L192 410 Z"/>
+    <path d="M320 410 L334 222 h12 v-26 h18 v26 h12 v-26 h18 v26 h12 L418 410 Z"/>
+    <path d="M194 410 L210 150 h14 v-28 h20 v28 h24 v-28 h20 v28 h14 L318 410 Z"/>
+  </g>
+  <!-- Cloud -->
+  <g fill="#1A8FA0">
+    <circle cx="130" cy="402" r="46"/>
+    <circle cx="204" cy="372" r="56"/>
+    <circle cx="306" cy="366" r="60"/>
+    <circle cx="384" cy="400" r="48"/>
+    <rect x="76" y="394" width="360" height="54" rx="27"/>
+  </g>
+</g>
+</svg>

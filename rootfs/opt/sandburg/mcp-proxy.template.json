@@ -1,0 +1,95 @@
+{
+  "mcpProxy": {
+    "baseURL": "http://${TS_HOSTNAME}:9090",
+    "addr": "${BIND_ADDR}:9090",
+    "name": "Sandburg",
+    "version": "1.0.0",
+    "type": "streamable-http",
+    "options": {
+      "panicIfInvalid": false,
+      "logEnabled": true,
+      "autoReconnect": true,
+      "authTokens": ["${SANDBURG_TOKEN}"]
+    }
+  },
+  "mcpServers": {
+    "blender": {
+      "command": "/usr/local/bin/mcp-for-blender",
+      "args": [],
+      "timeout": "15m",
+      "env": {
+        "HOME": "/root",
+        "PATH": "/usr/local/bin:/usr/bin:/bin",
+        "BLENDER_HOST": "localhost",
+        "BLENDER_PORT": "9876",
+        "BLENDER_MCP_SAFE_MODE": "${BLENDER_MCP_SAFE_MODE}",
+        "DISABLE_TELEMETRY": "true"
+      }
+    },
+    "freecad": {
+      "command": "/usr/local/bin/freecad-mcp",
+      "args": [],
+      "timeout": "10m",
+      "env": {
+        "HOME": "/root",
+        "PATH": "/opt/freecad/usr/bin:/usr/local/bin:/usr/bin:/bin"
+      }
+    },
+    "kicad": {
+      "command": "/opt/kicad-mcp/.venv/bin/python",
+      "args": ["-m", "kicad_mcp_server"],
+      "timeout": "10m",
+      "env": {
+        "HOME": "/root",
+        "PATH": "/usr/local/bin:/usr/bin:/bin",
+        "KICAD_CLI": "/usr/bin/kicad-cli",
+        "KICAD_PYTHON": "/usr/bin/python3"
+      }
+    },
+    "comfyui": {
+      "command": "/usr/local/bin/comfy-mcp",
+      "args": [],
+      "timeout": "30m",
+      "env": {
+        "HOME": "/root",
+        "PATH": "/opt/ComfyUI/.venv/bin:/usr/local/bin:/usr/bin:/bin",
+        "COMFY_BIN": "/opt/ComfyUI/.venv/bin/comfy",
+        "DO_NOT_TRACK": "1"
+      }
+    },
+    "build123d": {
+      "command": "/opt/sandburg/bin/mcp-build123d",
+      "args": [],
+      "timeout": "10m",
+      "env": {
+        "HOME": "/root"
+      }
+    },
+    "inkscape": {
+      "command": "/usr/local/bin/sandburg-inkscape-mcp",
+      "args": [],
+      "timeout": "10m",
+      "env": {
+        "HOME": "/root",
+        "SANDBURG_PROJECTS": "${WORKSPACE}/projects"
+      }
+    },
+    "browser": {
+      "command": "/opt/sandburg/bin/mcp-browser",
+      "args": [],
+      "timeout": "10m",
+      "env": {
+        "HOME": "/root"
+      }
+    },
+    "voice": {
+      "command": "/opt/sandburg/bin/mcp-voice",
+      "args": [],
+      "timeout": "30m",
+      "env": {
+        "HOME": "/root",
+        "SANDBURG_PROJECTS": "${WORKSPACE}/projects"
+      }
+    }
+  }
+}

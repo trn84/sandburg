@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Quick overview: processes, ports, proxy status, Tailscale.
+# shellcheck source=common.sh
+source /opt/sandburg/bin/common.sh
+echo "== Processes"
+supervisorctl -c /opt/sandburg/supervisord.conf status
+echo
+echo "== Listening ports"
+ss -ltnp 2> /dev/null | awk 'NR==1 || /:(9090|8090|9876|9875|8188|5900|6080)\b/'
+echo
+echo "== MCP proxy"
+curl -fsS http://127.0.0.1:9090/_readyz 2> /dev/null || curl -fsS "http://${BIND_ADDR:-127.0.0.1}:9090/_readyz" || echo "proxy not reachable"
+echo
+echo
+echo "== Tailscale"
+if [ -S /var/run/tailscale/tailscaled.sock ]; then
+    tailscale --socket=/var/run/tailscale/tailscaled.sock status | head -n 5
+else
+    echo "not active"
+fi
+echo
+echo "== GPU"
+nvidia-smi -L 2> /dev/null || echo "no NVIDIA GPU visible"

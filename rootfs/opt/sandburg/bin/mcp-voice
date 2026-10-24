@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Starts the Voice MCP server from the venv on the volume. While setup-voice.sh
+# is still installing, the script exits; mcp-proxy then retries.
+set -euo pipefail
+venv="${VOICE_VENV:-${WORKSPACE:-/workspace}/.sandburg/voice-venv}"
+if [ ! -f "${venv}/.sandburg-ready" ]; then
+    echo "Voice is still being set up (see /var/log/sandburg/voice-setup.log)" >&2
+    exit 1
+fi
+exec "${venv}/bin/sandburg-voice-mcp" "$@"

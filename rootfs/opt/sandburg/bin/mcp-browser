@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Playwright MCP: Chromium visible on the virtual desktop (watchable via noVNC).
+# Downloads and screenshots go to /workspace/projects/browser, the profile
+# (cookies, logins) persists on the volume.
+set -euo pipefail
+ws="${WORKSPACE:-/workspace}"
+mkdir -p "${ws}/projects/browser" "${ws}/.sandburg/browser-profile"
+# Clean up the profile lock of a crashed browser, otherwise Chromium won't start
+rm -f "${ws}/.sandburg/browser-profile/Singleton"{Lock,Socket,Cookie}
+cd "${ws}/projects"
+# shellcheck disable=SC2086
+exec playwright-mcp \
+    --browser chromium \
+    --no-sandbox \
+    --user-data-dir "${ws}/.sandburg/browser-profile" \
+    --output-dir "${ws}/projects/browser" \
+    --viewport-size "${BROWSER_VIEWPORT:-1440x900}" \
+    ${BROWSER_MCP_ARGS:-}

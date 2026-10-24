@@ -1,0 +1,15 @@
+{
+  "name": "sandburg",
+  "owner": {
+    "name": "Sandburg contributors"
+  },
+  "description": "Sandburg: a workshop in the cloud for Claude Code",
+  "plugins": [
+    {
+      "name": "sandburg",
+      "source": "./plugin",
+      "description": "MCP servers and file transfer for a Sandburg on RunPod and similar clouds",
+      "category": "development"
+    }
+  ]
+}

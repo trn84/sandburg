@@ -1,0 +1,9 @@
+.git
+.github
+.env
+workspace/
+*.md
+!README.md
+client/
+plugin/
+.claude-plugin/

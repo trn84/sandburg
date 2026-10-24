@@ -1,0 +1,60 @@
+{
+  "mcpServers": {
+    "blender": {
+      "type": "http",
+      "url": "http://sandburg:9090/blender/mcp",
+      "headers": {
+        "Authorization": "Bearer ${SANDBURG_TOKEN}"
+      }
+    },
+    "freecad": {
+      "type": "http",
+      "url": "http://sandburg:9090/freecad/mcp",
+      "headers": {
+        "Authorization": "Bearer ${SANDBURG_TOKEN}"
+      }
+    },
+    "kicad": {
+      "type": "http",
+      "url": "http://sandburg:9090/kicad/mcp",
+      "headers": {
+        "Authorization": "Bearer ${SANDBURG_TOKEN}"
+      }
+    },
+    "comfyui": {
+      "type": "http",
+      "url": "http://sandburg:9090/comfyui/mcp",
+      "headers": {
+        "Authorization": "Bearer ${SANDBURG_TOKEN}"
+      }
+    },
+    "build123d": {
+      "type": "http",
+      "url": "http://sandburg:9090/build123d/mcp",
+      "headers": {
+        "Authorization": "Bearer ${SANDBURG_TOKEN}"
+      }
+    },
+    "inkscape": {
+      "type": "http",
+      "url": "http://sandburg:9090/inkscape/mcp",
+      "headers": {
+        "Authorization": "Bearer ${SANDBURG_TOKEN}"
+      }
+    },
+    "browser": {
+      "type": "http",
+      "url": "http://sandburg:9090/browser/mcp",
+      "headers": {
+        "Authorization": "Bearer ${SANDBURG_TOKEN}"
+      }
+    },
+    "voice": {
+      "type": "http",
+      "url": "http://sandburg:9090/voice/mcp",
+      "headers": {
+        "Authorization": "Bearer ${SANDBURG_TOKEN}"
+      }
+    }
+  }
+}

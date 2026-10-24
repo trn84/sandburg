@@ -1,0 +1,31 @@
+# Local test on a machine with Docker + NVIDIA Container Toolkit.
+#   cp .env.example .env   (fill in values)
+#   docker compose up --build
+#
+# Without Tailscale, everything is reachable via the ports published on 127.0.0.1,
+# e.g. http://localhost:9090/blender/mcp and
+# http://localhost:6080/vnc.html, files at http://localhost:8090
+services:
+  sandburg:
+    build: .
+    image: sandburg:local
+    env_file: .env
+    environment:
+      # Listen on all interfaces inside the container so Docker can publish the
+      # ports. The "127.0.0.1:" prefix below keeps them local to the host.
+      BIND_ADDR: 0.0.0.0
+    volumes:
+      - ./workspace:/workspace
+    ports:
+      - "127.0.0.1:9090:9090"
+      - "127.0.0.1:8090:8090"
+      - "127.0.0.1:6080:6080"
+      - "127.0.0.1:8188:8188"
+    shm_size: 8gb
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
