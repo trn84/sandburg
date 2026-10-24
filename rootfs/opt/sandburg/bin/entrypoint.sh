@@ -12,11 +12,27 @@ for d in blender freecad kicad build123d inkscape browser audio; do
     mkdir -p "${projects}/${d}"
 done
 
+# --- Catch typos in variable names -------------------------------------------
+# A misspelled name such as SANDBURG_TOKN is otherwise silently ignored and the
+# container falls back to its defaults, e.g. a generated token.
+known_vars=" SANDBURG_TOKEN SANDBURG_PROJECTS TS_AUTHKEY TS_HOSTNAME TS_EXTRA_ARGS TS_STATE_DIR
+    ENABLE_BLENDER ENABLE_FREECAD ENABLE_KICAD ENABLE_BUILD123D ENABLE_INKSCAPE ENABLE_BROWSER
+    ENABLE_COMFYUI ENABLE_COMFYUI_3D ENABLE_VNC ENABLE_FILES ENABLE_VOICE
+    VOICE_IDLE_MINUTES VOICE_WHISPER_MODEL VOICE_MAX_CHUNK_CHARS VOICE_VENV
+    VOICE_TORCH_VERSION VOICE_TORCH_INDEX "
+known_vars="${known_vars//$'\n'/ }"
+while IFS= read -r name; do
+    case "${known_vars}" in *" ${name} "*) continue ;; esac
+    case "${name}" in TS_DEBUG_*) continue ;; esac # Tailscale's own debug switches
+    log "WARNING: environment variable ${name} is not used by Sandburg – typo?"
+done < <(compgen -e | grep -iE '^(SANDBURG|TS|ENABLE|VOICE)_|SANDB' | grep -viE 'SANDBOX' || true)
+
 # --- Token (MCP proxy and file server) ---------------------------------------
 token_file="${WORKSPACE}/.sandburg-token"
 if [ -z "${SANDBURG_TOKEN:-}" ]; then
     if [ -s "${token_file}" ]; then
         SANDBURG_TOKEN="$(< "${token_file}")"
+        log "SANDBURG_TOKEN not set – using the token from ${token_file}"
     else
         SANDBURG_TOKEN="$(openssl rand -hex 24)"
         (umask 077 && printf '%s' "${SANDBURG_TOKEN}" > "${token_file}")
