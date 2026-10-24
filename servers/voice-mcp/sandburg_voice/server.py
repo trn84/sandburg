@@ -1,9 +1,8 @@
 """MCP server for speech synthesis (text-to-speech) and speech recognition (speech-to-text).
 
 Tools:
-  speak          Convert text to speech (Chatterbox Multilingual, 23 languages)
-  clone_voice    Store a reference recording as a named voice
-  list_voices    List the stored voices
+  speak          Convert text to speech (Kokoro-82M)
+  list_voices    List the available voices and languages
   transcribe     Convert audio/video to text and optionally subtitles (SRT) (Whisper)
   unload_models  Remove the models from GPU memory immediately
 
@@ -15,7 +14,6 @@ Relative paths are resolved against SANDBURG_PROJECTS (default: /workspace/proje
 from __future__ import annotations
 
 import gc
-import json
 import os
 import re
 import shutil
@@ -30,29 +28,30 @@ from mcp.server.mcpserver import MCPServer
 
 PROJECTS = Path(os.environ.get("SANDBURG_PROJECTS", "/workspace/projects"))
 AUDIO_DIR = PROJECTS / "audio"
-VOICES_DIR = AUDIO_DIR / "voices"
 IDLE_SECONDS = float(os.environ.get("VOICE_IDLE_MINUTES", "10")) * 60
 WHISPER_MODEL = os.environ.get("VOICE_WHISPER_MODEL", "openai/whisper-large-v3-turbo")
-MAX_CHUNK_CHARS = int(os.environ.get("VOICE_MAX_CHUNK_CHARS", "280"))
-PAUSE_SECONDS = 0.25
+KOKORO_REPO = "hexgrad/Kokoro-82M"
+SAMPLE_RATE = 24000
+PAUSE_SECONDS = 0.4  # between paragraphs
 
-# Languages supported by Chatterbox Multilingual
+# Kokoro language codes; the first letter of a voice name is its language code
 LANGUAGES = {
-    "ar": "Arabic", "da": "Danish", "de": "German", "el": "Greek", "en": "English",
-    "es": "Spanish", "fi": "Finnish", "fr": "French", "he": "Hebrew", "hi": "Hindi",
-    "it": "Italian", "ja": "Japanese", "ko": "Korean", "ms": "Malay",
-    "nl": "Dutch", "no": "Norwegian", "pl": "Polish", "pt": "Portuguese",
-    "ru": "Russian", "sv": "Swedish", "sw": "Swahili", "tr": "Turkish", "zh": "Chinese",
+    "en": ("a", "English (US)"), "en-us": ("a", "English (US)"), "en-gb": ("b", "English (UK)"),
+    "es": ("e", "Spanish"), "fr": ("f", "French"), "hi": ("h", "Hindi"), "it": ("i", "Italian"),
+    "pt": ("p", "Portuguese (BR)"), "zh": ("z", "Chinese"),
 }
-VOICE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
+DEFAULT_VOICES = {
+    "a": "af_heart", "b": "bf_emma", "e": "ef_dora", "f": "ff_siwis", "h": "hf_alpha",
+    "i": "if_sara", "p": "pf_dora", "z": "zf_xiaobei",
+}
+VOICE_NAME = re.compile(r"^[abefhipz][fm]_[a-z]+$")
 
 server = MCPServer(
     name="sandburg-voice",
     instructions=(
         "Speech synthesis and speech recognition on the Sandburg's GPU. Results end up under "
         "/workspace/projects/audio and can be fetched via the file server. The first call "
-        "loads the models (the very first time including the download) and therefore takes longer. "
-        "Only clone voices with the consent of the person."
+        "loads the models (the very first time including the download) and therefore takes longer."
     ),
 )
 
@@ -63,6 +62,7 @@ class _Models:
     def __init__(self) -> None:
         self.lock = threading.RLock()
         self.tts: Any = None
+        self.pipelines: dict[str, Any] = {}
         self.asr: Any = None
         self.last_used = time.monotonic()
         threading.Thread(target=self._idle_watch, daemon=True).start()
@@ -76,14 +76,18 @@ class _Models:
     def touch(self) -> None:
         self.last_used = time.monotonic()
 
-    def get_tts(self) -> Any:
+    def get_pipeline(self, lang_code: str) -> Any:
+        """Kokoro pipeline for one language; all languages share one model."""
         with self.lock:
-            if self.tts is None:
-                from chatterbox.mtl_tts import ChatterboxMultilingualTTS
+            from kokoro import KModel, KPipeline
 
-                self.tts = ChatterboxMultilingualTTS.from_pretrained(device=self.device())
+            if self.tts is None:
+                self.tts = KModel(repo_id=KOKORO_REPO).to(self.device()).eval()
+            if lang_code not in self.pipelines:
+                self.pipelines[lang_code] = KPipeline(lang_code=lang_code, repo_id=KOKORO_REPO,
+                                                      model=self.tts)
             self.touch()
-            return self.tts
+            return self.pipelines[lang_code]
 
     def get_asr(self) -> Any:
         with self.lock:
@@ -105,6 +109,7 @@ class _Models:
         with self.lock:
             unloaded = [name for name in ("tts", "asr") if getattr(self, name) is not None]
             self.tts = None
+            self.pipelines = {}
             self.asr = None
             if unloaded:
                 gc.collect()
@@ -149,58 +154,29 @@ def _ffmpeg(*args: str) -> None:
         raise RuntimeError(f"ffmpeg failed: {proc.stderr.strip()[-2000:]}")
 
 
-def _duration(path: Path) -> float:
-    proc = subprocess.run(
-        ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "json", str(path)],
-        capture_output=True, text=True, timeout=60,
-    )
-    try:
-        return round(float(json.loads(proc.stdout)["format"]["duration"]), 2)
-    except (KeyError, ValueError, json.JSONDecodeError):
-        return 0.0
-
-
-def split_text(text: str, max_chars: int = MAX_CHUNK_CHARS) -> list[str]:
-    """Split text at sentence boundaries into chunks the model speaks reliably."""
-    text = re.sub(r"\s+", " ", text).strip()
-    if not text:
-        return []
-    sentences = re.split(r"(?<=[.!?…;:])\s+", text)
-    chunks: list[str] = []
-    current = ""
-    for sentence in sentences:
-        # Split overlong sentences further at commas, or at spaces if necessary
-        parts = [sentence]
-        if len(sentence) > max_chars:
-            parts = re.split(r"(?<=,)\s+", sentence)
-        for part in parts:
-            while len(part) > max_chars:
-                cut = part.rfind(" ", 0, max_chars)
-                cut = cut if cut > 0 else max_chars
-                if current:
-                    chunks.append(current)
-                    current = ""
-                chunks.append(part[:cut].strip())
-                part = part[cut:].strip()
-            if current and len(current) + 1 + len(part) > max_chars:
-                chunks.append(current)
-                current = part
-            else:
-                current = f"{current} {part}".strip()
-    if current:
-        chunks.append(current)
-    return [c for c in chunks if c]
-
-
-def _voice_path(voice: str | None) -> Path | None:
+def resolve_voice(voice: str | None, language: str | None) -> tuple[str, str]:
+    """Return (voice, Kokoro language code) from the given voice and/or language."""
+    lang_code = None
+    if language:
+        language = language.lower().strip()
+        if language not in LANGUAGES:
+            raise ValueError(f"language '{language}' is not supported. Supported: {', '.join(LANGUAGES)}")
+        lang_code = LANGUAGES[language][0]
     if not voice:
-        return None
-    if VOICE_NAME.match(voice) and (VOICES_DIR / f"{voice}.wav").is_file():
-        return VOICES_DIR / f"{voice}.wav"
-    p = _resolve(voice)
-    if p.is_file():
-        return p
-    raise ValueError(f"voice '{voice}' not found. list_voices returns the available voices.")
+        lang_code = lang_code or "a"
+        return DEFAULT_VOICES[lang_code], lang_code
+    # Several voices can be mixed: "af_bella,af_sky"
+    names = voice.split(",")
+    for name in names:
+        if not VOICE_NAME.match(name):
+            raise ValueError(f"unknown voice '{name}'. list_voices returns the available voices.")
+    if lang_code is None:
+        lang_code = names[0][0]
+    return voice, lang_code
+
+
+def _paragraphs(text: str) -> list[str]:
+    return [p for p in (re.sub(r"\s+", " ", p).strip() for p in re.split(r"\n\s*\n", text)) if p]
 
 
 def _output_path(filename: str | None, ext: str) -> Path:
@@ -240,108 +216,89 @@ def to_srt(chunks: list[dict]) -> str:
 @server.tool()
 def speak(
     text: str,
-    language: str = "en",
+    language: str | None = None,
     voice: str | None = None,
     filename: str | None = None,
     format: Literal["wav", "mp3"] = "wav",
-    exaggeration: float = 0.5,
-    cfg_weight: float = 0.5,
+    speed: float = 1.0,
 ) -> dict:
     """Convert text to spoken language and save it as an audio file.
 
-    Long texts are split at sentence boundaries and joined with short pauses.
+    Texts of any length are fine (whole chapters); paragraphs separated by a blank
+    line get a short pause.
 
     Args:
         text: The text to speak.
-        language: Language code, e.g. "en", "de", "fr" (23 languages, see the error message for an invalid code).
-        voice: Name of a voice created with clone_voice, or path to a reference WAV.
-               If omitted, the model's default voice is used.
+        language: Language code: en (= en-us), en-gb, es, fr, hi, it, pt, zh.
+                  If omitted, it follows from the voice (default: en).
+        voice: Kokoro voice, e.g. "af_heart" or "bm_george"; mixes such as "af_bella,af_sky"
+               are possible. list_voices returns all voices. If omitted, the language's
+               default voice is used.
         filename: Destination file; a bare name ends up in /workspace/projects/audio/.
         format: "wav" or "mp3".
-        exaggeration: Expressiveness, 0.25 (calm) to 1.0 (very emphatic).
-        cfg_weight: Adherence to the reference voice/pace, 0.3 (looser, faster) to 0.7.
+        speed: Speaking rate, 0.5 (slow) to 2.0 (fast).
     """
-    language = language.lower().strip()
-    if language not in LANGUAGES:
-        raise ValueError(f"language '{language}' is not supported. Supported: {', '.join(sorted(LANGUAGES))}")
-    chunks = split_text(text)
-    if not chunks:
+    voice, lang_code = resolve_voice(voice, language)
+    paragraphs = _paragraphs(text)
+    if not paragraphs:
         raise ValueError("no text given")
-    prompt = _voice_path(voice)
     out = _output_path(filename, format)
 
-    import torch
-    import torchaudio
+    import numpy as np
+    import soundfile
 
-    model = MODELS.get_tts()
+    pipeline = MODELS.get_pipeline(lang_code)
     with MODELS.lock:
         pieces = []
-        silence = torch.zeros(1, int(model.sr * PAUSE_SECONDS))
-        for i, chunk in enumerate(chunks):
-            kwargs: dict[str, Any] = {
-                "language_id": language,
-                "exaggeration": exaggeration,
-                "cfg_weight": cfg_weight,
-            }
-            if prompt is not None:
-                kwargs["audio_prompt_path"] = str(prompt)
-            wav = model.generate(chunk, **kwargs).detach().cpu()
-            if wav.dim() == 1:
-                wav = wav.unsqueeze(0)
-            pieces.append(wav)
-            if i < len(chunks) - 1:
+        silence = np.zeros(int(SAMPLE_RATE * PAUSE_SECONDS), dtype=np.float32)
+        for i, paragraph in enumerate(paragraphs):
+            for result in pipeline(paragraph, voice=voice, speed=speed, split_pattern=None):
+                if result.audio is not None:
+                    pieces.append(result.audio.detach().cpu().numpy())
+            if i < len(paragraphs) - 1:
                 pieces.append(silence)
-        audio = torch.cat(pieces, dim=1)
-        MODELS.touch()
+            MODELS.touch()
+    if not pieces:
+        raise RuntimeError("Kokoro produced no audio for this text")
+    audio = np.concatenate(pieces)
 
     wav_path = out if format == "wav" else out.with_suffix(".tmp.wav")
-    torchaudio.save(str(wav_path), audio, model.sr)
+    soundfile.write(str(wav_path), audio, SAMPLE_RATE)
     if format == "mp3":
         _ffmpeg("-i", str(wav_path), "-codec:a", "libmp3lame", "-q:a", "2", str(out))
         wav_path.unlink(missing_ok=True)
     return {
         "output": str(out),
-        "duration_s": round(audio.shape[1] / model.sr, 2),
-        "language": language,
-        "voice": voice or "default",
-        "chunks": len(chunks),
+        "duration_s": round(len(audio) / SAMPLE_RATE, 2),
+        "language": next(k for k, (code, _) in LANGUAGES.items() if code == lang_code),
+        "voice": voice,
     }
 
 
 @server.tool()
-def clone_voice(reference: str, name: str) -> dict:
-    """Store a reference recording as a named voice for speak().
-
-    Ideally 10–20 seconds of cleanly spoken speech without music or reverb. At least
-    5 seconds; longer recordings are trimmed to 30 seconds. Audio and video
-    (e.g. MP3, M4A, MP4) are accepted. Only use with the consent of the person.
-
-    Args:
-        reference: Path to the recording, e.g. after uploading it via the file server.
-        name: Name of the voice (letters, digits, - and _), e.g. "narrator".
-    """
-    if not VOICE_NAME.match(name):
-        raise ValueError("invalid name: only letters, digits, - and _ (max. 64 characters)")
-    src = _existing(reference)
-    VOICES_DIR.mkdir(parents=True, exist_ok=True)
-    dst = VOICES_DIR / f"{name}.wav"
-    # Mono, 24 kHz, max. 30 s – what the model expects as a reference
-    _ffmpeg("-i", str(src), "-t", "30", "-ac", "1", "-ar", "24000", str(dst))
-    duration = _duration(dst)
-    if 0 < duration < 5:
-        dst.unlink(missing_ok=True)
-        raise ValueError(f"the recording is only {duration} s long; at least 5 seconds are required.")
-    return {"voice": name, "path": str(dst), "duration_s": duration}
-
-
-@server.tool()
 def list_voices() -> dict:
-    """List the stored voices and supported languages."""
-    voices = []
-    if VOICES_DIR.is_dir():
-        for f in sorted(VOICES_DIR.glob("*.wav")):
-            voices.append({"name": f.stem, "path": str(f), "duration_s": _duration(f)})
-    return {"voices": voices, "languages": LANGUAGES}
+    """List the available Kokoro voices (grouped by language) and the supported languages.
+
+    The voice name says language and gender: "af_heart" = American English, female.
+    """
+    from huggingface_hub import list_repo_files, snapshot_download
+
+    try:
+        files = list_repo_files(KOKORO_REPO)
+    except Exception:  # offline: fall back to what is in the cache
+        cache = Path(snapshot_download(KOKORO_REPO, local_files_only=True))
+        files = [str(p.relative_to(cache)) for p in cache.glob("voices/*.pt")]
+    voices = sorted(Path(f).stem for f in files if f.startswith("voices/") and f.endswith(".pt"))
+    by_language: dict[str, list[str]] = {}
+    for language, (code, _) in LANGUAGES.items():
+        if language == "en-us":
+            continue  # same as "en"
+        by_language[language] = [v for v in voices if VOICE_NAME.match(v) and v[0] == code]
+    return {
+        "voices": by_language,
+        "defaults": {lang: DEFAULT_VOICES[code] for lang, (code, _) in LANGUAGES.items()},
+        "languages": {lang: name for lang, (_, name) in LANGUAGES.items()},
+    }
 
 
 @server.tool()

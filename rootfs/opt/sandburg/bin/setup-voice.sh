@@ -9,7 +9,8 @@ source /opt/sandburg/bin/common.sh
 enabled ENABLE_VOICE || { log "Voice disabled (ENABLE_VOICE=0)"; exit 0; }
 
 venv="${VOICE_VENV:-${WORKSPACE}/.sandburg/voice-venv}"
-stamp="chatterbox-tts==${CHATTERBOX_VERSION} torch==${VOICE_TORCH_VERSION} ${VOICE_TORCH_INDEX}"
+spacy_model="https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl"
+stamp="kokoro==${KOKORO_VERSION} torch==${VOICE_TORCH_VERSION} ${VOICE_TORCH_INDEX} ${spacy_model##*/}"
 
 if [ -f "${venv}/.sandburg-stamp" ] && [ "$(< "${venv}/.sandburg-stamp")" = "${stamp}" ]; then
     log "Speech model environment present (${venv})"
@@ -18,16 +19,15 @@ else
     rm -rf "${venv}"
     mkdir -p "$(dirname "${venv}")"
     uv venv --python /usr/bin/python3 "${venv}"
-    overrides="$(mktemp)"
-    # chatterbox-tts pins an older torch without support for new GPUs
-    # (e.g. RTX 50xx); we force a current CUDA 12.8 build.
-    printf 'torch==%s\ntorchaudio==%s\n' "${VOICE_TORCH_VERSION}" "${VOICE_TORCH_VERSION}" > "${overrides}"
+    # torch from the CUDA 12.8 index, so new GPUs (e.g. RTX 50xx) are supported.
+    # misaki would download the spaCy model with pip at the first call, which the
+    # uv venv doesn't have, so it is installed here.
     uv pip install --python "${venv}/bin/python" \
-        --override "${overrides}" \
         --extra-index-url "${VOICE_TORCH_INDEX}" \
         --index-strategy unsafe-best-match \
-        "chatterbox-tts==${CHATTERBOX_VERSION}"
-    rm -f "${overrides}"
+        "torch==${VOICE_TORCH_VERSION}" \
+        "kokoro==${KOKORO_VERSION}" "misaki[en,zh]==${KOKORO_VERSION}" soundfile \
+        "en_core_web_sm @ ${spacy_model}"
     printf '%s' "${stamp}" > "${venv}/.sandburg-stamp"
 fi
 

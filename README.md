@@ -18,7 +18,7 @@
                                        │   /inkscape   ─▶ Inkscape + potrace           │
  Browser ── :6080 desktop (noVNC) ───▶ │   /comfyui    ─▶ ComfyUI (optional 3D)        │
  Browser ── :8188 ComfyUI ───────────▶ │   /browser    ─▶ Chromium (Playwright)        │
- Finder/curl ── :8090 files ─────────▶ │   /voice      ─▶ Chatterbox + Whisper (opt.)  │
+ Finder/curl ── :8090 files ─────────▶ │   /voice      ─▶ Kokoro + Whisper (optional)  │
                                        │ dufs: /workspace/projects (HTTP + WebDAV)     │
                                        └───────────────────────────────────────────────┘
 ```
@@ -34,7 +34,7 @@
 | **Inkscape** (current stable release) | Check and view SVGs, convert text to paths, export to DXF/PDF/PNG, vectorize images | custom server (`servers/inkscape-mcp`) | on |
 | **Browser** (Chromium) | Operate websites, download files straight to the pod, view your own HTML output | [Playwright MCP](https://github.com/microsoft/playwright-mcp) 0.0.83 | on |
 | **ComfyUI** | Generate images; with `ENABLE_COMFYUI_3D=1` also image-to-3D (Hunyuan3D 2.1) | [comfy-mcp](https://github.com/Comfy-Org/comfy-mcp) 0.10.0 (official) | on, 3D off |
-| **Voice** | Speech output in 23 languages, voice cloning, transcription and subtitles | custom server (`servers/voice-mcp`) with [Chatterbox Multilingual](https://github.com/resemble-ai/chatterbox) and Whisper | off |
+| **Voice** | Speech output (English, Spanish, French, Hindi, Italian, Portuguese, Chinese), transcription and subtitles | custom server (`servers/voice-mcp`) with [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) and Whisper | off |
 
 Blender, FreeCAD and the browser run visibly on a virtual desktop. You can watch them in your browser via noVNC and step in when needed. A disabled service stays visible in the plugin and tells Claude how to enable it.
 
@@ -124,7 +124,7 @@ Also:
 | `projects/blender`, `freecad`, `kicad`, `build123d`, `inkscape` | Working directories of the respective services |
 | `projects/comfyui/input`, `projects/comfyui/output` | ComfyUI inputs and results (3D models under `output/mesh`) |
 | `projects/browser` | Browser downloads and screenshots |
-| `projects/audio` | Speech output, `voices/` (cloned voices), `transcripts/` |
+| `projects/audio` | Speech output, `transcripts/` |
 | `comfyui/models` | ComfyUI models (not exposed via the file server) |
 | `.sandburg/` | Browser profile and speech model environment |
 
@@ -132,11 +132,8 @@ Also:
 
 **Voice (`ENABLE_VOICE=1`):** On first start, a separate Python environment for the speech models is set up on the volume. This takes a few minutes (log: `/var/log/sandburg/voice-setup.log`). The first speech call downloads the models. After that they stay in GPU memory and are unloaded again after 10 minutes without a call (`VOICE_IDLE_MINUTES`), so ComfyUI and Blender get the memory back.
 
-- `speak`: text to WAV or MP3; long texts are split into sentences automatically.
-- `clone_voice`: creates a voice from 5–30 seconds of recording. **Only with the consent of the person whose voice it is.**
-- `transcribe`: audio or video to text, optionally as SRT subtitles.
-
-Chatterbox adds an inaudible watermark to its output.
+- `speak`: text of any length to WAV or MP3, with one of Kokoro's voices (`list_voices`).
+- `transcribe`: audio or video to text in any language Whisper knows, optionally as SRT subtitles.
 
 **ComfyUI 3D (`ENABLE_COMFYUI_3D=1`):** Downloads the Hunyuan3D 2.1 model (about 7.4 GB) to the volume once. ComfyUI supports it without extensions. The `3d_hunyuan3d-v2.1` template turns an image into an untextured 3D model (GLB) that you can refine in Blender.
 
@@ -225,7 +222,7 @@ The scripts, custom servers and the plugin in this repository are licensed under
 - FreeCAD under the LGPL
 - Inkscape under the GPL
 - comfy-mcp under the AGPL-3.0
-- Chatterbox under MIT
+- Kokoro under Apache 2.0
 - Chromium under BSD licenses
 - the NVIDIA CUDA base under NVIDIA's license terms
 

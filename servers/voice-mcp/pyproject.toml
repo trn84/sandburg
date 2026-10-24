@@ -1,10 +1,10 @@
 [project]
 name = "sandburg-voice-mcp"
 version = "0.1.0"
-description = "MCP server for speech synthesis (Chatterbox Multilingual) and speech recognition (Whisper)"
+description = "MCP server for speech synthesis (Kokoro-82M) and speech recognition (Whisper)"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-# The heavy dependencies (chatterbox-tts, torch, transformers) are installed by
+# The heavy dependencies (kokoro, torch, transformers) are installed by
 # setup-voice.sh, because torch is forced to a matching CUDA version there.
 dependencies = [
     "mcp>=2,<3",
