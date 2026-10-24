@@ -40,14 +40,17 @@ Blender, FreeCAD and the browser run visibly on a virtual desktop. You can watch
 
 ## 1. Build the image
 
-**Via GitHub Actions (recommended):** Push the repository to GitHub. The workflow in `.github/workflows/build.yml` builds the image and publishes it as `ghcr.io/<user>/<repo>:latest`. Then set the visibility to *public* in the package settings on GitHub.
-
 **Locally:**
 
 ```bash
+docker login ghcr.io -u <user>    # password: a GitHub token with the write:packages scope
 docker build -t ghcr.io/<user>/sandburg:latest .
 docker push ghcr.io/<user>/sandburg:latest
 ```
+
+**Via GitHub Actions:** The workflow in `.github/workflows/build.yml` only builds when you start it manually (*Actions* → *Build image* → *Run workflow*) or when the last commit of a push to `main` contains `[build]` in its message. It publishes the image as `ghcr.io/<user>/<repo>:latest`.
+
+After the first push, set the visibility to *public* in the package settings on GitHub so RunPod can pull the image.
 
 The image is large (roughly 18 GB, mostly PyTorch, FreeCAD and Chromium). `--build-arg KICAD_3D_MODELS=true` adds the KiCad 3D models. All versions are defined as `ARG`s at the top of the `Dockerfile`.
 
