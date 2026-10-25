@@ -132,7 +132,7 @@ Also:
 
 **Voice (`ENABLE_VOICE=1`):** On first start, a separate Python environment for the speech models is set up on the volume. This takes a few minutes (log: `/var/log/sandburg/voice-setup.log`). The first speech call downloads the models. After that they stay in GPU memory and are unloaded again after 10 minutes without a call (`VOICE_IDLE_MINUTES`), so ComfyUI and Blender get the memory back.
 
-- `speak`: text of any length to WAV or MP3, with one of Kokoro's voices (`list_voices`).
+- `speak`: text of any length to WAV or MP3, with one of Kokoro's voices (`list_voices`). With `timestamps`, it also returns when each word is spoken (English only), e.g. for subtitles in sync with the speech.
 - `transcribe`: audio or video to text in any language Whisper knows, optionally as SRT subtitles.
 
 **ComfyUI 3D (`ENABLE_COMFYUI_3D=1`):** Downloads the Hunyuan3D 2.1 model (about 7.4 GB) to the volume once. ComfyUI supports it without extensions. The `3d_hunyuan3d-v2.1` template turns an image into an untextured 3D model (GLB) that you can refine in Blender.

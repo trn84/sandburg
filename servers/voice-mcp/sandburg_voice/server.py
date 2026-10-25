@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import functools
 import gc
+import json
 import os
 import re
 import shutil
@@ -47,6 +48,8 @@ DEFAULT_VOICES = {
     "i": "if_sara", "p": "pf_dora", "z": "zf_xiaobei",
 }
 VOICE_NAME = re.compile(r"^[abefhipz][fm]_[a-z]+$")
+TIMESTAMP_LANGUAGES = {"a", "b"}  # Kokoro only times the words of English text
+MAX_INLINE_WORDS = 300  # longer word lists are only written to the file
 
 server = MCPServer(
     name="sandburg-voice",
@@ -194,6 +197,18 @@ def _output_path(filename: str | None, ext: str) -> Path:
     return p
 
 
+def _words(tokens: list[Any] | None, offset: float) -> list[dict]:
+    """Word timings of one Kokoro result, shifted to where its audio starts in the file."""
+    words = []
+    for t in tokens or []:
+        # Punctuation is its own token; tokens past the predicted durations have no time
+        if t.start_ts is None or t.end_ts is None or not any(c.isalnum() for c in t.text):
+            continue
+        words.append({"word": t.text, "start": round(offset + t.start_ts, 3),
+                      "end": round(offset + t.end_ts, 3)})
+    return words
+
+
 def _srt_time(seconds: float) -> str:
     ms = int(round(max(seconds, 0) * 1000))
     h, ms = divmod(ms, 3_600_000)
@@ -242,6 +257,7 @@ def speak(
     filename: str | None = None,
     format: Literal["wav", "mp3"] = "wav",
     speed: float = 1.0,
+    timestamps: bool = False,
 ) -> dict:
     """Convert text to spoken language and save it as an audio file.
 
@@ -258,8 +274,13 @@ def speak(
         filename: Destination file; a bare name ends up in /workspace/projects/audio/.
         format: "wav" or "mp3".
         speed: Speaking rate, 0.5 (slow) to 2.0 (fast).
+        timestamps: Also return when each word is spoken (start/end in seconds) and write
+                    them to <file>.words.json, e.g. for subtitles in sync with the speech.
+                    English only (en, en-gb).
     """
     voice, lang_code = resolve_voice(voice, language)
+    if timestamps and lang_code not in TIMESTAMP_LANGUAGES:
+        raise ValueError("word timestamps are only available for English (en, en-gb)")
     paragraphs = _paragraphs(text)
     if not paragraphs:
         raise ValueError("no text given")
@@ -271,13 +292,22 @@ def speak(
     pipeline = MODELS.get_pipeline(lang_code)
     with MODELS.lock:
         pieces = []
+        words: list[dict] = []
+        offset = 0  # samples generated so far
         silence = np.zeros(int(SAMPLE_RATE * PAUSE_SECONDS), dtype=np.float32)
         for i, paragraph in enumerate(paragraphs):
+            # Kokoro splits long paragraphs itself; each result is timed from its own start
             for result in pipeline(paragraph, voice=voice, speed=speed, split_pattern=None):
-                if result.audio is not None:
-                    pieces.append(result.audio.detach().cpu().numpy())
+                if result.audio is None:
+                    continue
+                if timestamps:
+                    words += _words(result.tokens, offset / SAMPLE_RATE)
+                piece = result.audio.detach().cpu().numpy()
+                pieces.append(piece)
+                offset += len(piece)
             if i < len(paragraphs) - 1:
                 pieces.append(silence)
+                offset += len(silence)
             MODELS.touch()
     if not pieces:
         raise RuntimeError("Kokoro produced no audio for this text")
@@ -288,12 +318,21 @@ def speak(
     if format == "mp3":
         _ffmpeg("-i", str(wav_path), "-codec:a", "libmp3lame", "-q:a", "2", str(out))
         wav_path.unlink(missing_ok=True)
-    return {
+    answer: dict[str, Any] = {
         "output": str(out),
         "duration_s": round(len(audio) / SAMPLE_RATE, 2),
         "language": next(k for k, (code, _) in LANGUAGES.items() if code == lang_code),
         "voice": voice,
     }
+    if timestamps:
+        words_path = out.with_suffix(".words.json")
+        words_path.write_text(json.dumps(words, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+        answer["words_file"] = str(words_path)
+        if len(words) <= MAX_INLINE_WORDS:
+            answer["words"] = words
+        else:
+            answer["note"] = f"{len(words)} words; the timings are only in words_file"
+    return answer
 
 
 @tool
