@@ -1,7 +1,7 @@
 {
   "name": "sandburg",
   "displayName": "Sandburg",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Connects Claude Code to a Sandburg in the cloud: Blender, FreeCAD, KiCad, build123d, Inkscape, OpenModelica, ngspice, ComfyUI, a browser and speech output via MCP, plus file transfer.",
   "author": {
     "name": "Sandburg contributors"
@@ -28,7 +28,7 @@
     "host": {
       "type": "string",
       "title": "Sandburg address",
-      "description": "Tailscale name (MagicDNS) or IP address of the Sandburg, e.g. sandburg or 100.64.0.12",
+      "description": "Tailscale name (MagicDNS) or IP address of the Sandburg, e.g. sandburg or 100.64.0.12; 127.0.0.1 for a local container",
       "default": "sandburg",
       "required": true
     },

@@ -80,7 +80,7 @@ claude plugin install sandburg@sandburg
 
 Or in a running session: `/plugin marketplace add trn84/sandburg`, then `/plugin install sandburg@sandburg`.
 
-Then set the address (default `sandburg`, i.e. the Tailscale name) and the token (`cat /workspace/.sandburg-token` on the pod) in a Claude Code session with `/plugin configure sandburg@sandburg`. The token is stored in the system keychain. After that, all services are connected. The plugin also ships a skill that explains the folders and workflows on the Sandburg to Claude, and the `sandburg` command for file transfer. Address and token can be changed later under `/plugin` → **Installed** → *sandburg* → **Configure options**.
+Then set the address (default `sandburg`, i.e. the Tailscale name) and the token (`cat /workspace/.sandburg-token` on the pod) in a Claude Code session with `/plugin configure sandburg@sandburg`. The token is stored in the system keychain. In the VS Code extension, where `/plugin` is not available, use `claude plugin configure sandburg@sandburg --values-stdin` in a terminal instead (see [Running locally](#running-locally) for an example). After that, all services are connected. The plugin also ships a skill that explains the folders and workflows on the Sandburg to Claude, and the `sandburg` command for file transfer. Address and token can be changed later under `/plugin` → **Installed** → *sandburg* → **Configure options**.
 
 It also works without the plugin: copy `client/mcp.json.example` into your project as `.mcp.json` and set `SANDBURG_TOKEN` in your shell.
 
@@ -103,6 +103,14 @@ sandburg ls freecad                  # list a folder
 sandburg get freecad/enclosure.stl   # download (folders arrive as .zip)
 sandburg put drawing.step freecad/   # upload
 ```
+
+Claude Code only puts the command on the PATH for its own shells. In your terminal, call it from the repository as `plugin/bin/sandburg`, or link it once into a folder on your PATH:
+
+```bash
+ln -s "$PWD/plugin/bin/sandburg" ~/.local/bin/sandburg
+```
+
+It reads address and token from `~/.config/sandburg/config`, which the plugin writes at the start of every Claude Code session.
 
 Also:
 
@@ -198,17 +206,38 @@ Locally: `sandburg status` checks whether the pod is reachable and the token is 
 
 If the service depends on a GUI application, also add a startup script and a `[program:…]` block in `supervisord.conf`.
 
-## Testing locally
+## Running locally
+
+The Sandburg also runs without RunPod and Tailscale, on your own machine with Docker and the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html):
 
 ```bash
-cp .env.example .env      # leave TS_AUTHKEY empty to run without Tailscale
+cp .env.example .env      # leave TS_AUTHKEY empty, set SANDBURG_TOKEN
 docker compose up --build
-# MCP:     http://localhost:9090/<service>/mcp   (token: workspace/.sandburg-token)
+# MCP:     http://localhost:9090/<service>/mcp
 # Files:   http://localhost:8090                 (user sandburg, password = token)
 # Desktop: http://localhost:6080/vnc.html
+# ComfyUI: http://localhost:8188
 ```
 
-For the plugin, use `localhost` as the address in that case.
+The ports are only published on `127.0.0.1`, and the volume is the `workspace/` folder next to `docker-compose.yml`.
+
+**Switching the plugin between pod and local container:** Under `/plugin` → **Installed** → *sandburg* → **Configure options** (or `/plugin configure sandburg@sandburg`), enter:
+
+| | Address | Token |
+|---|---|---|
+| Pod | its Tailscale name (`TS_HOSTNAME`, default `sandburg`) | the pod's token (`SANDBURG_TOKEN` on RunPod, or `/workspace/.sandburg-token` on the pod) |
+| Local container | `127.0.0.1` | `SANDBURG_TOKEN` from your `.env` (or `workspace/.sandburg-token` if you left it empty) |
+
+In the VS Code extension, `/plugin` is not available. There, set the values in a terminal instead, e.g. for the local container (run in the repository, takes the token from `.env`):
+
+```bash
+printf '{"host":"127.0.0.1","token":"%s"}' "$(grep '^SANDBURG_TOKEN=' .env | cut -d= -f2-)" |
+    claude plugin configure sandburg@sandburg --values-stdin
+```
+
+and back to the pod with `{"host":"sandburg","token":"<the pod's token>"}`.
+
+Then start a new Claude Code session. The MCP servers connect with the new values, and the `sandburg` command only picks them up at session start. If you use the same `SANDBURG_TOKEN` in `.env` and on RunPod, only the address changes when you switch.
 
 ## Licenses
 
