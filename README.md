@@ -7,23 +7,12 @@
 
 **A workshop in the cloud for Claude Code.** Sandburg is a Docker image with Blender, FreeCAD, KiCad, build123d, Inkscape, OpenModelica, ngspice, ComfyUI, a browser and optional speech output, each with a ready-to-use MCP server. You start it on a GPU cloud such as RunPod, it joins your tailnet, and your local Claude Code works with it as if the programs were installed on your machine. A Claude Code plugin wires everything up with a single command, and Claude downloads finished files to you on its own.
 
-```
-  Your machine                          GPU pod (this image)
- ┌───────────────────────┐  Tailscale  ┌───────────────────────────────────────────────┐
- │ Claude Code           │ ──────────▶ │ mcp-proxy :9090 (token)                       │
- │  + plugin "sandburg"  │             │   /blender    ─▶ Blender (GUI on Xvfb)        │
- │    (MCP, skill,       │             │   /freecad    ─▶ FreeCAD (GUI on Xvfb)        │
- │     sandburg command) │             │   /kicad      ─▶ kicad-cli + pcbnew           │
- └───────────────────────┘             │   /build123d  ─▶ build123d (CAD as code)      │
-                                       │   /inkscape   ─▶ Inkscape + potrace           │
-                                       │   /openmodelica ─▶ omc (Modelica, headless)   │
-                                       │   /ngspice    ─▶ ngspice (SPICEBridge)        │
- Browser ── :6080 desktop (noVNC) ───▶ │   /comfyui    ─▶ ComfyUI (optional 3D)        │
- Browser ── :8188 ComfyUI ───────────▶ │   /browser    ─▶ Chromium (Playwright)        │
- Finder/curl ── :8090 files ─────────▶ │   /voice      ─▶ Kokoro + Whisper (optional)  │
-                                       │ dufs: /workspace/projects (HTTP + WebDAV)     │
-                                       └───────────────────────────────────────────────┘
-```
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/architecture-dark.svg">
+    <img src="assets/architecture.svg" alt="Architecture: Claude Code with the sandburg plugin on your machine connects through Tailscale to mcp-proxy on port 9090 of the GPU pod, which routes to the MCP servers for Blender, FreeCAD, build123d, KiCad, ngspice, OpenModelica, Inkscape, ComfyUI, the browser and voice. The tailnet also reaches the file server (8090), the noVNC desktop (6080) and the ComfyUI web UI (8188).">
+  </picture>
+</p>
 
 ## What's inside
 
@@ -205,6 +194,7 @@ Locally: `sandburg status` checks whether the pod is reachable and the token is 
 2. Add it under `mcpServers` in `rootfs/opt/sandburg/mcp-proxy.template.json`. The key becomes the path `/<name>/mcp`.
 3. Add an `ENABLE_…` switch in `rootfs/opt/sandburg/bin/entrypoint.sh`.
 4. Add it to the plugin (`plugin/.claude-plugin/plugin.json`).
+5. Add it to `SERVICES` in `assets/architecture.py` and run the script to update the diagram.
 
 If the service depends on a GUI application, also add a startup script and a `[program:…]` block in `supervisord.conf`.
 

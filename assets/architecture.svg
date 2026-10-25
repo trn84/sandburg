@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" width="1200" height="700" role="img" aria-labelledby="title desc">
+<title id="title">Sandburg architecture</title>
+<desc id="desc">Claude Code with the sandburg plugin on your machine connects through Tailscale to the GPU pod. There, mcp-proxy on port 9090 routes /service/mcp with a bearer token to the MCP servers for Blender, FreeCAD, build123d, KiCad, ngspice, OpenModelica, Inkscape, ComfyUI, the browser and voice. The tailnet also reaches the file server on port 8090, the noVNC desktop on 6080 and the ComfyUI web UI on 8188.</desc>
+<defs>
+<marker id="a-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#1A8FA0"/></marker>
+<marker id="a-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#86695A"/></marker>
+</defs>
+<rect x="0" y="0" width="1200" height="700" rx="18" fill="#FBF6EE"/>
+<rect x="24" y="30" width="300" height="646" rx="14" fill="#FFFFFF" stroke="#E7D9C6" stroke-width="1.5"/>
+<rect x="430" y="30" width="746" height="646" rx="14" fill="#FFFFFF" stroke="#E7D9C6" stroke-width="1.5"/>
+<text x="44" y="62" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#86695A" text-anchor="start" letter-spacing="1.5">YOUR MACHINE</text>
+<text x="450" y="62" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#86695A" text-anchor="start" letter-spacing="1.5">GPU POD</text>
+<text x="1156" y="62" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="end">this Docker image on RunPod or any host with an NVIDIA GPU</text>
+<rect x="344" y="30" width="66" height="646" rx="12" fill="#1A8FA0" fill-opacity="0.08" stroke="#1A8FA0" stroke-opacity="0.5" stroke-width="1.5" stroke-dasharray="5 5"/>
+<text x="377.0" y="380" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#1A8FA0" text-anchor="middle" letter-spacing="1.5" transform="rotate(-90 377.0 380)">TAILSCALE  ·  YOUR TAILNET</text>
+<rect x="44" y="84" width="260" height="178" rx="12" fill="#FFFDF9" stroke="#E7D9C6" stroke-width="1.5"/>
+<text x="64" y="118" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="#3D2416" text-anchor="start">Claude Code</text>
+<text x="64" y="140" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#86695A" text-anchor="start">+ plugin “sandburg”</text>
+<rect x="64" y="156" width="220" height="26" rx="13" fill="#FBEADB"/>
+<text x="78" y="173" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="500" fill="#3D2416" text-anchor="start">MCP servers for every service</text>
+<rect x="64" y="188" width="220" height="26" rx="13" fill="#FBEADB"/>
+<text x="78" y="205" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="500" fill="#3D2416" text-anchor="start">skill: folders and workflows</text>
+<rect x="64" y="220" width="220" height="26" rx="13" fill="#FBEADB"/>
+<text x="78" y="237" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="500" fill="#3D2416" text-anchor="start">sandburg command: files</text>
+<line x1="174" y1="262" x2="174" y2="482" stroke="#86695A" stroke-width="1.5" stroke-dasharray="4 5" marker-end="url(#a-muted)"/>
+<text x="186" y="366" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="start">fetches and uploads</text>
+<text x="186" y="383" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="start">files on its own</text>
+<rect x="44" y="484" width="260" height="50" rx="12" fill="#FFFDF9" stroke="#E7D9C6" stroke-width="1.5"/>
+<text x="64" y="505" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#3D2416" text-anchor="start">sandburg command</text>
+<text x="64" y="523" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="start">or Finder, Explorer, curl</text>
+<rect x="44" y="544" width="260" height="110" rx="12" fill="#FFFDF9" stroke="#E7D9C6" stroke-width="1.5"/>
+<text x="64" y="594" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#3D2416" text-anchor="start">Your web browser</text>
+<text x="64" y="613" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="start">desktop and ComfyUI</text>
+<rect x="450" y="84" width="706" height="56" rx="10" fill="#FBEADB" stroke="#D9772E" stroke-width="1.5"/>
+<text x="470" y="110" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" font-weight="700" fill="#3D2416" text-anchor="start">mcp-proxy</text>
+<text x="560" y="110" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="15" font-weight="700" fill="#D9772E" text-anchor="start">:9090</text>
+<text x="470" y="129" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#86695A" text-anchor="start">one HTTP endpoint with a bearer token, /&lt;service&gt;/mcp → stdio MCP server</text>
+<rect x="450.0" y="158" width="131.6" height="124" rx="10" fill="#FFFDF9" stroke="#E7D9C6" stroke-width="1.5"/>
+<path d="M460.0 158 H571.6" stroke="#D9772E" stroke-width="4" stroke-linecap="round"/>
+<text x="464.0" y="188" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" font-weight="600" fill="#D9772E" text-anchor="start">/blender</text>
+<text x="464.0" y="216" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#3D2416" text-anchor="start">Blender</text>
+<text x="464.0" y="240" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="start">GUI on Xvfb</text>
+<text x="464.0" y="258" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="start">Cycles on the GPU</text>
+<rect x="593.6" y="158" width="131.6" height="124" rx="10" fill="#FFFDF9" stroke="#E7D9C6" stroke-width="1.5"/>
+<path d="M603.6 158 H715.2" stroke="#D9772E" stroke-width="4" stroke-linecap="round"/>
+<text x="607.6" y="188" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" font-weight="600" fill="#D9772E" text-anchor="start">/freecad</text>
+<text x="607.6" y="216" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#3D2416" text-anchor="start">FreeCAD</text>
+<text x="607.6" y="240" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="start">GUI on Xvfb</text>
+<text x="607.6" y="258" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="start">CAD, FEM, STEP</text>
+<rect x="737.2" y="158" width="131.6" height="124" rx="10" fill="#FFFDF9" stroke="#E7D9C6" stroke-width="1.5"/>
+<path d="M747.2 158 H858.8000000000001" stroke="#D9772E" stroke-width="4" stroke-linecap="round"/>
+<text x="751.2" y="188" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" font-weight="600" fill="#D9772E" text-anchor="start">/build123d</text>
+<text x="751.2" y="216" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#3D2416" text-anchor="start">build123d</text>
+<text x="751.2" y="240" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="start">CAD as Python</text>
+<text x="751.2" y="258" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="start">STEP, STL, DXF</text>
+<rect x="880.8" y="158" width="131.6" height="124" rx="10" fill="#FFFDF9" stroke="#E7D9C6" stroke-width="1.5"/>
+<path d="M890.8 158 H1002.4" stroke="#1A8FA0" stroke-width="4" stroke-linecap="round"/>
+<text x="894.8" y="188" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" font-weight="600" fill="#1A8FA0" text-anchor="start">/kicad</text>
+<text x="894.8" y="216" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#3D2416" text-anchor="start">KiCad</text>
+<text x="894.8" y="240" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="start">kicad-cli + pcbnew</text>
+<text x="894.8" y="258" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="start">ERC, DRC, Gerber</text>
+<rect x="1024.4" y="158" width="131.6" height="124" rx="10" fill="#FFFDF9" stroke="#E7D9C6" stroke-width="1.5"/>
+<path d="M1034.4 158 H1146.0" stroke="#1A8FA0" stroke-width="4" stroke-linecap="round"/>
+<text x="1038.4" y="188" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" font-weight="600" fill="#1A8FA0" text-anchor="start">/ngspice</text>
+<text x="1038.4" y="216" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#3D2416" text-anchor="start">ngspice</text>
+<text x="1038.4" y="240" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="start">SPICEBridge</text>
+<text x="1038.4" y="258" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="start">AC, transient, DC</text>
+<rect x="450.0" y="294" width="131.6" height="124" rx="10" fill="#FFFDF9" stroke="#E7D9C6" stroke-width="1.5"/>
+<path d="M460.0 294 H571.6" stroke="#1A8FA0" stroke-width="4" stroke-linecap="round"/>
+<text x="464.0" y="324" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" font-weight="600" fill="#1A8FA0" text-anchor="start">/openmodelica</text>
+<text x="464.0" y="352" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#3D2416" text-anchor="start">OpenModelica</text>
+<text x="464.0" y="376" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="start">omc, headless</text>
+<text x="464.0" y="394" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="start">Modelica + MSL</text>
+<rect x="593.6" y="294" width="131.6" height="124" rx="10" fill="#FFFDF9" stroke="#E7D9C6" stroke-width="1.5"/>
+<path d="M603.6 294 H715.2" stroke="#B98A2E" stroke-width="4" stroke-linecap="round"/>
+<text x="607.6" y="324" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" font-weight="600" fill="#B98A2E" text-anchor="start">/inkscape</text>
+<text x="607.6" y="352" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#3D2416" text-anchor="start">Inkscape</text>
+<text x="607.6" y="376" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="start">+ potrace</text>
+<text x="607.6" y="394" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="start">SVG, DXF, PDF</text>
+<rect x="737.2" y="294" width="131.6" height="124" rx="10" fill="#FFFDF9" stroke="#E7D9C6" stroke-width="1.5"/>
+<path d="M747.2 294 H858.8000000000001" stroke="#B98A2E" stroke-width="4" stroke-linecap="round"/>
+<text x="751.2" y="324" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" font-weight="600" fill="#B98A2E" text-anchor="start">/comfyui</text>
+<text x="751.2" y="352" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#3D2416" text-anchor="start">ComfyUI</text>
+<text x="751.2" y="376" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="start">image generation</text>
+<text x="751.2" y="394" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="start" font-style="italic">3D optional</text>
+<rect x="880.8" y="294" width="131.6" height="124" rx="10" fill="#FFFDF9" stroke="#E7D9C6" stroke-width="1.5"/>
+<path d="M890.8 294 H1002.4" stroke="#B98A2E" stroke-width="4" stroke-linecap="round"/>
+<text x="894.8" y="324" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" font-weight="600" fill="#B98A2E" text-anchor="start">/browser</text>
+<text x="894.8" y="352" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#3D2416" text-anchor="start">Browser</text>
+<text x="894.8" y="376" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="start">Chromium</text>
+<text x="894.8" y="394" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="start">Playwright</text>
+<rect x="1024.4" y="294" width="131.6" height="124" rx="10" fill="#FFFDF9" stroke="#E7D9C6" stroke-width="1.5" stroke-dasharray="5 4"/>
+<path d="M1034.4 294 H1146.0" stroke="#B98A2E" stroke-width="4" stroke-linecap="round"/>
+<text x="1038.4" y="324" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="12" font-weight="600" fill="#B98A2E" text-anchor="start">/voice</text>
+<text x="1038.4" y="352" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#3D2416" text-anchor="start">Voice</text>
+<text x="1038.4" y="376" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="start">Kokoro + Whisper</text>
+<text x="1038.4" y="394" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="start" font-style="italic">optional</text>
+<circle cx="455" cy="441" r="5" fill="#D9772E"/>
+<text x="466" y="445" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="start">3D and CAD</text>
+<circle cx="565" cy="441" r="5" fill="#1A8FA0"/>
+<text x="576" y="445" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="start">Electronics and simulation</text>
+<circle cx="755" cy="441" r="5" fill="#B98A2E"/>
+<text x="766" y="445" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="start">2D, images, web, speech</text>
+<rect x="930" y="435" width="18" height="12" rx="3" fill="none" stroke="#86695A" stroke-width="1.2" stroke-dasharray="3 2"/>
+<text x="956" y="445" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#86695A" text-anchor="start">off by default</text>
+<text x="450" y="474" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#86695A" text-anchor="start" letter-spacing="1.5">ALSO IN THE TAILNET</text>
+<rect x="450" y="484" width="706" height="50" rx="10" fill="#E1F1F3"/>
+<text x="470" y="514" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="15" font-weight="700" fill="#1A8FA0" text-anchor="start">:8090</text>
+<text x="536" y="514" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#3D2416" text-anchor="start">dufs file server</text>
+<text x="716" y="514" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#86695A" text-anchor="start">/workspace/projects over HTTP and WebDAV, on the volume</text>
+<rect x="450" y="544" width="706" height="50" rx="10" fill="#E1F1F3"/>
+<text x="470" y="574" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="15" font-weight="700" fill="#1A8FA0" text-anchor="start">:6080</text>
+<text x="536" y="574" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#3D2416" text-anchor="start">noVNC desktop</text>
+<text x="716" y="574" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#86695A" text-anchor="start">watch Blender, FreeCAD and the browser, step in</text>
+<rect x="450" y="604" width="706" height="50" rx="10" fill="#E1F1F3"/>
+<text x="470" y="634" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="15" font-weight="700" fill="#1A8FA0" text-anchor="start">:8188</text>
+<text x="536" y="634" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#3D2416" text-anchor="start">ComfyUI web UI</text>
+<text x="716" y="634" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#86695A" text-anchor="start">build and run workflows by hand</text>
+<line x1="304" y1="112" x2="448" y2="112" stroke="#1A8FA0" stroke-width="2" marker-end="url(#a-teal)"/>
+<rect x="360.2" y="102" width="33.6" height="20" rx="10" fill="#FFFFFF" stroke="#1A8FA0" stroke-width="1.5"/>
+<text x="377.0" y="116" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="11" font-weight="600" fill="#1A8FA0" text-anchor="middle">MCP</text>
+<line x1="304" y1="509" x2="448" y2="509" stroke="#86695A" stroke-width="2" marker-end="url(#a-muted)"/>
+<rect x="356.6" y="499" width="40.8" height="20" rx="10" fill="#FFFFFF" stroke="#86695A" stroke-width="1.5"/>
+<text x="377.0" y="513" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="11" font-weight="600" fill="#86695A" text-anchor="middle">HTTP</text>
+<line x1="304" y1="569" x2="448" y2="569" stroke="#86695A" stroke-width="2" marker-end="url(#a-muted)"/>
+<rect x="360.2" y="559" width="33.6" height="20" rx="10" fill="#FFFFFF" stroke="#86695A" stroke-width="1.5"/>
+<text x="377.0" y="573" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="11" font-weight="600" fill="#86695A" text-anchor="middle">VNC</text>
+<line x1="304" y1="629" x2="448" y2="629" stroke="#86695A" stroke-width="2" marker-end="url(#a-muted)"/>
+<rect x="356.6" y="619" width="40.8" height="20" rx="10" fill="#FFFFFF" stroke="#86695A" stroke-width="1.5"/>
+<text x="377.0" y="633" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="11" font-weight="600" fill="#86695A" text-anchor="middle">HTTP</text>
+</svg>
