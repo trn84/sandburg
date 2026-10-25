@@ -5,7 +5,7 @@
   </picture>
 </p>
 
-**A workshop in the cloud for Claude Code.** Sandburg is a Docker image with Blender, FreeCAD, KiCad, build123d, Inkscape, ComfyUI, a browser and optional speech output, each with a ready-to-use MCP server. You start it on a GPU cloud such as RunPod, it joins your tailnet, and your local Claude Code works with it as if the programs were installed on your machine. A Claude Code plugin wires everything up with a single command, and Claude downloads finished files to you on its own.
+**A workshop in the cloud for Claude Code.** Sandburg is a Docker image with Blender, FreeCAD, KiCad, build123d, Inkscape, OpenModelica, ngspice, ComfyUI, a browser and optional speech output, each with a ready-to-use MCP server. You start it on a GPU cloud such as RunPod, it joins your tailnet, and your local Claude Code works with it as if the programs were installed on your machine. A Claude Code plugin wires everything up with a single command, and Claude downloads finished files to you on its own.
 
 ```
   Your machine                          GPU pod (this image)
@@ -16,6 +16,8 @@
  │     sandburg command) │             │   /kicad      ─▶ kicad-cli + pcbnew           │
  └───────────────────────┘             │   /build123d  ─▶ build123d (CAD as code)      │
                                        │   /inkscape   ─▶ Inkscape + potrace           │
+                                       │   /openmodelica ─▶ omc (Modelica, headless)   │
+                                       │   /ngspice    ─▶ ngspice (SPICEBridge)        │
  Browser ── :6080 desktop (noVNC) ───▶ │   /comfyui    ─▶ ComfyUI (optional 3D)        │
  Browser ── :8188 ComfyUI ───────────▶ │   /browser    ─▶ Chromium (Playwright)        │
  Finder/curl ── :8090 files ─────────▶ │   /voice      ─▶ Kokoro + Whisper (optional)  │
@@ -32,6 +34,8 @@
 | **KiCad** 10 | Schematics, PCBs, ERC/DRC, Gerber, bills of materials | [Seeed-Studio/kicad-mcp-server](https://github.com/Seeed-Studio/kicad-mcp-server) | on |
 | **build123d** | CAD as Python code: reproducible, preview images, STEP/STL/DXF | [build123d-mcp](https://github.com/pzfreo/build123d-mcp) 0.3.91 | on |
 | **Inkscape** (current stable release) | Check and view SVGs, convert text to paths, export to DXF/PDF/PNG, vectorize images | custom server (`servers/inkscape-mcp`) | on |
+| **OpenModelica** (current release, compiler `omc` without GUI) | Model and simulate physical systems in Modelica (electrical, mechanical, thermal, control) with the Modelica Standard Library, plots as images | custom server (`servers/openmodelica-mcp`) | on |
+| **ngspice** 42 | Circuit simulation: AC, transient, DC operating point, measurements, Monte Carlo and worst case, export to KiCad schematics | [SPICEBridge](https://github.com/clanker-lover/spicebridge) 1.3.0 | on |
 | **Browser** (Chromium) | Operate websites, download files straight to the pod, view your own HTML output | [Playwright MCP](https://github.com/microsoft/playwright-mcp) 0.0.83 | on |
 | **ComfyUI** | Generate images; with `ENABLE_COMFYUI_3D=1` also image-to-3D (Hunyuan3D 2.1) | [comfy-mcp](https://github.com/Comfy-Org/comfy-mcp) 0.10.0 (official) | on, 3D off |
 | **Voice** | Speech output (English, Spanish, French, Hindi, Italian, Portuguese, Chinese), transcription and subtitles | custom server (`servers/voice-mcp`) with [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) and Whisper | off |
@@ -121,12 +125,13 @@ Also:
 
 | Folder on the Sandburg | Contents |
 |---|---|
-| `projects/blender`, `freecad`, `kicad`, `build123d`, `inkscape` | Working directories of the respective services |
+| `projects/blender`, `freecad`, `kicad`, `build123d`, `inkscape`, `openmodelica` | Working directories of the respective services |
+| `projects/ngspice/circuits` | One folder per ngspice circuit: netlist, raw data, schematic, KiCad export |
 | `projects/comfyui/input`, `projects/comfyui/output` | ComfyUI inputs and results (3D models under `output/mesh`) |
 | `projects/browser` | Browser downloads and screenshots |
 | `projects/audio` | Speech output, `transcripts/` |
 | `comfyui/models` | ComfyUI models (not exposed via the file server) |
-| `.sandburg/` | Browser profile and speech model environment |
+| `.sandburg/` | Browser profile, speech model environment, ngspice models created with `create_model` |
 
 ## Optional services
 
@@ -147,7 +152,7 @@ Also:
 | `TS_STATE_DIR` | – (in memory) | Keep the Tailscale node across restarts, e.g. `/workspace/.tailscale`. Without it the pod logs out when it stops and leaves the tailnet immediately |
 | `SANDBURG_TOKEN` | generated | Token for the MCP proxy and file server. At least 16 characters, only `A-Z a-z 0-9 . _ ~ -` |
 | `VNC_PASSWORD` | generated | Password for the desktop |
-| `ENABLE_BLENDER`, `_FREECAD`, `_KICAD`, `_BUILD123D`, `_INKSCAPE`, `_BROWSER`, `_COMFYUI`, `_VNC`, `_FILES` | `1` | Disable individual services (`0`) |
+| `ENABLE_BLENDER`, `_FREECAD`, `_KICAD`, `_BUILD123D`, `_INKSCAPE`, `_OPENMODELICA`, `_NGSPICE`, `_BROWSER`, `_COMFYUI`, `_VNC`, `_FILES` | `1` | Disable individual services (`0`) |
 | `ENABLE_VOICE`, `ENABLE_COMFYUI_3D` | `0` | Enable optional services (`1`) |
 | `VOICE_IDLE_MINUTES` | `10` | Unload speech models after this many minutes without a call (`0` = never) |
 | `BROWSER_VIEWPORT` | `1440x900` | Browser window size |
@@ -160,8 +165,8 @@ Also:
 
 ## Security
 
-- **Python execution:** Several services run arbitrary Python code (`execute_blender_code`, `execute_code` in FreeCAD, build123d). Anyone who can reach the proxy and has the token effectively has a shell on the pod.
-- **The tailnet is the security boundary.** In userspace mode, Tailscale forwards all locally listening ports into the tailnet, including the internal bridges of Blender (9876) and FreeCAD (9875), which have no authentication of their own. Restrict access to the pod to your own devices with a [Tailscale ACL](https://tailscale.com/kb/1018/acls).
+- **Python execution:** Several services run arbitrary Python code (`execute_blender_code`, `execute_code` in FreeCAD, build123d), and OpenModelica's `run_script` can call shell commands via `system()`. Anyone who can reach the proxy and has the token effectively has a shell on the pod.
+- **The tailnet is the security boundary.** In userspace mode, Tailscale forwards all locally listening ports into the tailnet, including the internal bridges of Blender (9876) and FreeCAD (9875), which have no authentication of their own. The same goes for SPICEBridge's schematic viewer (`open_viewer`, port 8080 by default), which is protected by its own token. Restrict access to the pod to your own devices with a [Tailscale ACL](https://tailscale.com/kb/1018/acls).
 - **Browser and third-party websites:** Third-party pages may try to slip instructions to Claude (prompt injection), and the same session has tools that execute code. The pod is an isolated, disposable environment, but still: don't store important logins (Google, banking, company accounts) in the pod's browser.
 - **Don't expose ports in RunPod.** As an exception, without Tailscale: `BIND_ADDR=0.0.0.0`, expose only ports 9090 and 8090, and use a long `SANDBURG_TOKEN`. noVNC and ComfyUI stay bound to `127.0.0.1` (`UI_BIND_ADDR`) and are not reachable from outside in this mode, even if their ports are exposed.
 - **Token on your machine:** The plugin also stores the token in `~/.config/sandburg/config` (readable only by you) so the `sandburg` command can use it.
@@ -189,7 +194,7 @@ Locally: `sandburg status` checks whether the pod is reachable and the token is 
 | Path | Contents |
 |---|---|
 | `Dockerfile`, `rootfs/` | Image, startup scripts, supervisord and proxy configuration |
-| `servers/` | Custom MCP servers: Inkscape, Voice, placeholder for disabled services |
+| `servers/` | Custom MCP servers: Inkscape, OpenModelica, Voice, placeholder for disabled services |
 | `plugin/`, `.claude-plugin/marketplace.json` | Claude Code plugin and its catalog |
 | `client/mcp.json.example` | Manual setup without the plugin |
 | `.github/workflows/build.yml` | Image build to GHCR |
@@ -222,6 +227,8 @@ The scripts, custom servers and the plugin in this repository are licensed under
 - Blender, KiCad and ComfyUI under the GPL
 - FreeCAD under the LGPL
 - Inkscape under the GPL
+- OpenModelica under the AGPL-3.0 or the OSMC Public License, the Modelica Standard Library under the BSD 3-Clause license
+- ngspice under a modified BSD license, SPICEBridge under the GPL-3.0
 - comfy-mcp under the AGPL-3.0
 - Kokoro under Apache 2.0
 - Chromium under BSD licenses

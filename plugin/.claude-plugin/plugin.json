@@ -2,7 +2,7 @@
   "name": "sandburg",
   "displayName": "Sandburg",
   "version": "0.1.0",
-  "description": "Connects Claude Code to a Sandburg in the cloud: Blender, FreeCAD, KiCad, build123d, Inkscape, ComfyUI, a browser and speech output via MCP, plus file transfer.",
+  "description": "Connects Claude Code to a Sandburg in the cloud: Blender, FreeCAD, KiCad, build123d, Inkscape, OpenModelica, ngspice, ComfyUI, a browser and speech output via MCP, plus file transfer.",
   "author": {
     "name": "Sandburg contributors"
   },
@@ -14,6 +14,10 @@
     "kicad",
     "build123d",
     "inkscape",
+    "openmodelica",
+    "modelica",
+    "ngspice",
+    "spice",
     "comfyui",
     "playwright",
     "tts",
@@ -75,6 +79,20 @@
     "inkscape": {
       "type": "http",
       "url": "http://${user_config.host}:9090/inkscape/mcp",
+      "headers": {
+        "Authorization": "Bearer ${user_config.token}"
+      }
+    },
+    "openmodelica": {
+      "type": "http",
+      "url": "http://${user_config.host}:9090/openmodelica/mcp",
+      "headers": {
+        "Authorization": "Bearer ${user_config.token}"
+      }
+    },
+    "ngspice": {
+      "type": "http",
+      "url": "http://${user_config.host}:9090/ngspice/mcp",
       "headers": {
         "Authorization": "Bearer ${user_config.token}"
       }

@@ -1,11 +1,11 @@
 # syntax=docker/dockerfile:1.7
 #
-# Sandburg: Blender, FreeCAD, KiCad, build123d, Inkscape, ComfyUI, a browser
-# (Playwright) and optional speech output – with preconfigured MCP servers behind
-# a shared HTTP endpoint (mcp-proxy), reachable via Tailscale. Intended for RunPod
-# and similar clouds, but runs on any Docker host with the NVIDIA Container Toolkit
-# (and even without a GPU if need be). Results are fetched back via the built-in
-# file server (dufs).
+# Sandburg: Blender, FreeCAD, KiCad, build123d, Inkscape, OpenModelica, ngspice,
+# ComfyUI, a browser (Playwright) and optional speech output – with preconfigured
+# MCP servers behind a shared HTTP endpoint (mcp-proxy), reachable via Tailscale.
+# Intended for RunPod and similar clouds, but runs on any Docker host with the
+# NVIDIA Container Toolkit (and even without a GPU if need be). Results are
+# fetched back via the built-in file server (dufs).
 
 ARG CUDA_BASE=nvidia/cuda:12.8.1-base-ubuntu24.04
 
@@ -49,6 +49,8 @@ ARG BUILD123D_MCP_VERSION=0.3.91
 ARG INKSCAPE_PPA=inkscape.dev/stable
 ARG NODE_MAJOR=22
 ARG PLAYWRIGHT_MCP_VERSION=0.0.83
+ARG OPENMODELICA_CHANNEL=release
+ARG SPICEBRIDGE_VERSION=1.3.0
 
 ENV DEBIAN_FRONTEND=noninteractive \
     TZ=Etc/UTC \
@@ -77,6 +79,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     ENABLE_BUILD123D=1 \
     ENABLE_INKSCAPE=1 \
     ENABLE_BROWSER=1 \
+    ENABLE_OPENMODELICA=1 \
+    ENABLE_NGSPICE=1 \
     ENABLE_VOICE=0 \
     ENABLE_COMFYUI_3D=0 \
     KOKORO_VERSION=0.9.4 \
@@ -194,6 +198,31 @@ RUN add-apt-repository -y "ppa:${INKSCAPE_PPA}" \
     && rm -rf /var/lib/apt/lists/* \
     && inkscape --version
 
+# --- OpenModelica (compiler omc + libraries, no GUI) --------------------------
+# The release channel only holds the latest version, so it can't be pinned.
+# The first loadModel unpacks the bundled libraries to ~/.openmodelica; doing it
+# here keeps that out of the first tool call.
+RUN curl -fsSL https://build.openmodelica.org/apt/openmodelica.asc \
+        | gpg --dearmor -o /usr/share/keyrings/openmodelica-keyring.gpg \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/openmodelica-keyring.gpg] https://build.openmodelica.org/apt $(. /etc/os-release && echo "${VERSION_CODENAME}") ${OPENMODELICA_CHANNEL}" \
+        > /etc/apt/sources.list.d/openmodelica.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends omc omlibrary \
+    && rm -rf /var/lib/apt/lists/* \
+    && omc --version \
+    && cd /tmp \
+    && printf 'loadModel(Modelica); getErrorString();\n' > load-msl.mos \
+    && omc load-msl.mos | grep -x true \
+    && rm load-msl.mos
+
+# --- ngspice + SPICEBridge MCP ------------------------------------------------
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ngspice \
+    && rm -rf /var/lib/apt/lists/* \
+    && ngspice --version \
+    && uv tool install --python /usr/bin/python3 "spicebridge==${SPICEBRIDGE_VERSION}" \
+    && uv cache clean
+
 # --- Node.js + Playwright MCP with Chromium ------------------------------------
 RUN curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR}.x" | bash - \
     && apt-get install -y --no-install-recommends nodejs \
@@ -216,10 +245,11 @@ RUN git clone --depth 1 --branch "${COMFYUI_REF}" https://github.com/Comfy-Org/C
     && uv tool install --python /usr/bin/python3 "comfy-mcp==${COMFY_MCP_VERSION}" \
     && uv cache clean
 
-# --- Custom MCP servers (Inkscape built in, Voice is installed on the volume
+# --- Custom MCP servers (Inkscape and OpenModelica built in, Voice is installed on the volume
 #     on demand, see setup-voice.sh) -------------------------------------------
 COPY servers/ /opt/sandburg/servers/
 RUN uv tool install --python /usr/bin/python3 /opt/sandburg/servers/inkscape-mcp \
+    && uv tool install --python /usr/bin/python3 /opt/sandburg/servers/openmodelica-mcp \
     && uv tool install --python /usr/bin/python3 /opt/sandburg/servers/disabled-mcp \
     && uv cache clean
 
@@ -246,5 +276,5 @@ ENTRYPOINT ["/opt/sandburg/bin/entrypoint.sh"]
 # Links the image to the repository on GitHub, also for locally pushed builds.
 # Kept at the end so changing it doesn't invalidate the build cache.
 LABEL org.opencontainers.image.source="https://github.com/trn84/sandburg" \
-      org.opencontainers.image.description="Blender, FreeCAD, KiCad, build123d, Inkscape, ComfyUI and a browser with MCP servers for Claude Code" \
+      org.opencontainers.image.description="Blender, FreeCAD, KiCad, build123d, Inkscape, OpenModelica, ngspice, ComfyUI and a browser with MCP servers for Claude Code" \
       org.opencontainers.image.licenses="MIT"

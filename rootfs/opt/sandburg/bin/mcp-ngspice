@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# SPICEBridge (ngspice) with /workspace/projects/ngspice as working directory.
+# Each circuit gets its own folder via TMPDIR under circuits/, so exported KiCad
+# schematics end up where the file server can serve them. HOME points to the
+# volume so models created with create_model survive a restart.
+set -euo pipefail
+dir="${WORKSPACE:-/workspace}/projects/ngspice"
+home="${WORKSPACE:-/workspace}/.sandburg/ngspice"
+mkdir -p "${dir}/circuits" "${home}"
+cd "${dir}"
+export TMPDIR="${dir}/circuits" HOME="${home}"
+exec /usr/local/bin/spicebridge "$@"

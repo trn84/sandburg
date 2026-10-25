@@ -1,12 +1,12 @@
 ---
 name: sandburg
-description: Working with the Sandburg, a remote workshop with Blender, FreeCAD, KiCad, build123d, Inkscape, ComfyUI, a browser and speech output. Use whenever a tool of the MCP servers blender, freecad, kicad, build123d, inkscape, comfyui, browser or voice is used, or when files need to be exchanged with the Sandburg (3D models, STL/STEP, Gerber, SVG/DXF, images, audio).
+description: Working with the Sandburg, a remote workshop with Blender, FreeCAD, KiCad, build123d, Inkscape, OpenModelica, ngspice, ComfyUI, a browser and speech output. Use whenever a tool of the MCP servers blender, freecad, kicad, build123d, inkscape, openmodelica, ngspice, comfyui, browser or voice is used, or when files need to be exchanged with the Sandburg (3D models, STL/STEP, Gerber, SVG/DXF, Modelica models, SPICE netlists, simulation results, images, audio).
 ---
 
 # Sandburg
 
-The MCP servers `blender`, `freecad`, `kicad`, `build123d`, `inkscape`, `comfyui`, `browser` and
-`voice` do not run on this machine but on a remote GPU pod, the
+The MCP servers `blender`, `freecad`, `kicad`, `build123d`, `inkscape`, `openmodelica`, `ngspice`,
+`comfyui`, `browser` and `voice` do not run on this machine but on a remote GPU pod, the
 **Sandburg**. All paths in these tool calls refer to the Sandburg's file system.
 Local files are not visible there, and the Sandburg's files are not visible here.
 
@@ -21,6 +21,8 @@ Everything the user should receive belongs under `/workspace/projects/`:
 | KiCad (projects, Gerber, BOM) | `/workspace/projects/kicad/` |
 | build123d (scripts, STEP, STL) | `/workspace/projects/build123d/` (working directory, relative paths end up here) |
 | Inkscape (SVG, DXF, PDF) | `/workspace/projects/inkscape/` |
+| OpenModelica (.mo models, results/, plots/) | `/workspace/projects/openmodelica/` (relative paths end up here) |
+| ngspice (one folder per circuit: netlist, raw data, schematic, KiCad export) | `/workspace/projects/ngspice/circuits/` |
 | ComfyUI inputs / results | `/workspace/projects/comfyui/input/`, `/workspace/projects/comfyui/output/` |
 | Browser downloads, screenshots | `/workspace/projects/browser/` |
 | Audio (speech output, transcripts) | `/workspace/projects/audio/` |
@@ -62,6 +64,20 @@ sandburg put drawing.step freecad/           # upload; output is the path on the
 - **2D vector graphics, laser cutters, plotters, logos:** write SVG directly, then check it with
   `inkscape` (`preview`), convert text to paths and export as DXF/SVG/PDF. Vectorize raster images
   with `trace_bitmap`.
+- **Simulating physical systems** (drives, hydraulics, thermal behavior, control loops, mixed
+  domains): `openmodelica`. Write the model with `write_model` (a `.mo` file under
+  `/workspace/projects/openmodelica/`, checked right away with `model`), then `simulate` (CSV under `results/`),
+  and look at it with `plot` or `read_results`. Parameters can be varied without editing the
+  model (`parameters`); for a parameter study, give each run its own `output` and pass all
+  results to `plot` to compare them in one diagram. Use `run_script` to look up classes in the Modelica Standard Library
+  instead of guessing component names.
+- **Simulating electronic circuits** (filters, amplifiers, operating points, tolerances): `ngspice`.
+  `create_circuit` takes a SPICE netlist as text and returns a `circuit_id` for the analyses and
+  measurements. `.include`/`.lib` of own files, `.control` and `.meas` are rejected: paste
+  `.model`/`.subckt` definitions into the netlist (or use `create_model`) and measure with the
+  `measure_*` tools. Files of a circuit end up in `ngspice/circuits/spicebridge_<circuit_id>_*/`, so a
+  KiCad schematic from `export_kicad` can be fetched from there. `open_viewer` returns a URL with
+  `127.0.0.1`; replace it with the Sandburg address before passing it on.
 - **Generating images:** `comfyui`. With the 3D model enabled, the template
   `3d_hunyuan3d-v2.1` turns an image into an untextured 3D model (GLB under
   `comfyui/output/mesh/`) that can be refined in Blender.
@@ -78,4 +94,4 @@ user has to enable it on the pod (`ENABLE_…=1`). Pass this on to the user.
 ## Checking results
 
 Look at the result before finishing: Blender `look`, FreeCAD `get_view`, build123d renders,
-Inkscape `preview`, browser screenshot. Only then download and report.
+Inkscape `preview`, OpenModelica `plot`, ngspice `draw_schematic`, browser screenshot. Only then download and report.

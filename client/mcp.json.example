@@ -42,6 +42,20 @@
         "Authorization": "Bearer ${SANDBURG_TOKEN}"
       }
     },
+    "openmodelica": {
+      "type": "http",
+      "url": "http://sandburg:9090/openmodelica/mcp",
+      "headers": {
+        "Authorization": "Bearer ${SANDBURG_TOKEN}"
+      }
+    },
+    "ngspice": {
+      "type": "http",
+      "url": "http://sandburg:9090/ngspice/mcp",
+      "headers": {
+        "Authorization": "Bearer ${SANDBURG_TOKEN}"
+      }
+    },
     "browser": {
       "type": "http",
       "url": "http://sandburg:9090/browser/mcp",

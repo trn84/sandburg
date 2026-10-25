@@ -74,6 +74,24 @@
         "SANDBURG_PROJECTS": "${WORKSPACE}/projects"
       }
     },
+    "openmodelica": {
+      "command": "/usr/local/bin/sandburg-openmodelica-mcp",
+      "args": [],
+      "timeout": "30m",
+      "env": {
+        "HOME": "/root",
+        "PATH": "/usr/local/bin:/usr/bin:/bin",
+        "SANDBURG_PROJECTS": "${WORKSPACE}/projects"
+      }
+    },
+    "ngspice": {
+      "command": "/opt/sandburg/bin/mcp-ngspice",
+      "args": [],
+      "timeout": "10m",
+      "env": {
+        "PATH": "/usr/local/bin:/usr/bin:/bin"
+      }
+    },
     "browser": {
       "command": "/opt/sandburg/bin/mcp-browser",
       "args": [],
