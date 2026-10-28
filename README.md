@@ -212,12 +212,17 @@ The Sandburg also runs without RunPod and Tailscale, on your own machine with Do
 
 ```bash
 cp .env.example .env      # leave TS_AUTHKEY empty, set SANDBURG_TOKEN
-docker compose up --build
+docker compose pull       # prebuilt image from ghcr.io/trn84/sandburg:latest
+docker compose up -d
 # MCP:     http://localhost:9090/<service>/mcp
 # Files:   http://localhost:8090                 (user sandburg, password = token)
 # Desktop: http://localhost:6080/vnc.html
 # ComfyUI: http://localhost:8188
 ```
+
+To build the image yourself instead, run `docker compose up -d --build`. Run `pull` explicitly when you want the GHCR image: if the image is missing locally, `up` builds it instead of pulling it. Set `SANDBURG_IMAGE` in `.env` to use a different image or tag.
+
+`docker compose up` reads `.env` through `env_file`, with or without `-d`. After changing `.env`, run `docker compose up -d` again, which recreates the container. `docker compose restart` keeps the old values. Logs: `docker compose logs -f`.
 
 The ports are only published on `127.0.0.1`, and the volume is the `workspace/` folder next to `docker-compose.yml`.
 

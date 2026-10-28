@@ -1,6 +1,7 @@
 # Local test on a machine with Docker + NVIDIA Container Toolkit.
 #   cp .env.example .env   (fill in values)
-#   docker compose up --build
+#   docker compose pull && docker compose up -d   (prebuilt image from GHCR)
+#   docker compose up -d --build                  (or build it yourself)
 #
 # Without Tailscale, everything is reachable via the ports published on 127.0.0.1,
 # e.g. http://localhost:9090/blender/mcp and
@@ -8,7 +9,8 @@
 services:
   sandburg:
     build: .
-    image: sandburg:local
+    # Pulled by "docker compose pull", overwritten by "--build".
+    image: ${SANDBURG_IMAGE:-ghcr.io/trn84/sandburg:latest}
     env_file: .env
     environment:
       # Listen on all interfaces inside the container so Docker can publish the
