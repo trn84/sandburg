@@ -60,3 +60,30 @@ use_mesa_gl() {
     mkdir -p "${XDG_RUNTIME_DIR:-/tmp/runtime-root}"
     chmod 700 "${XDG_RUNTIME_DIR:-/tmp/runtime-root}"
 }
+
+# ComfyUI and Voice each have a venv with the same PyTorch on the volume. With a
+# shared uv cache there, uv hardlinks the identical files (torch and the CUDA
+# libraries, several GB) instead of storing them twice. There is one cache per
+# PyTorch version, so an update doesn't leave the old version behind.
+use_torch_cache() {
+    local root="${WORKSPACE}/.cache/uv-torch" name="${TORCH_VERSION}-${TORCH_INDEX##*/}"
+    mkdir -p "${root}"
+    find "${root}" -mindepth 1 -maxdepth 1 ! -name "${name}" -exec rm -rf {} +
+    export UV_CACHE_DIR="${root}/${name}" UV_LINK_MODE=hardlink
+    # The CUDA wheels are several hundred MB each. On a slow line uv's default of
+    # 30 s without data aborts the whole install, and every retry starts over.
+    export UV_HTTP_TIMEOUT="${UV_HTTP_TIMEOUT:-300}"
+}
+
+# Takes the lock for the venvs on the volume until the calling script exits, so
+# ComfyUI and Voice don't install into the shared cache at the same time.
+lock_torch_venvs() {
+    mkdir -p "${WORKSPACE}/.sandburg"
+    exec 9> "${WORKSPACE}/.sandburg/torch.lock"
+    flock 9
+}
+
+# Fingerprint of a venv's base. If it changes, the venv is rebuilt.
+torch_stamp() {
+    printf '%s torch==%s %s' "$(/usr/bin/python3 -V)" "${TORCH_VERSION}" "${TORCH_INDEX}"
+}

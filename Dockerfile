@@ -7,8 +7,6 @@
 # NVIDIA Container Toolkit (and even without a GPU if need be). Results are
 # fetched back via the built-in file server (dufs).
 
-ARG CUDA_BASE=nvidia/cuda:12.8.1-base-ubuntu24.04
-
 # ---------------------------------------------------------------------------
 # Stage 1: mcp-proxy (bundles all stdio MCP servers behind one HTTP port)
 # ---------------------------------------------------------------------------
@@ -30,7 +28,10 @@ RUN git clone --depth 1 --branch "${MCP_PROXY_VERSION}" https://github.com/tbxar
 # ---------------------------------------------------------------------------
 # Stage 2: the Sandburg itself
 # ---------------------------------------------------------------------------
-FROM ${CUDA_BASE}
+# Plain Ubuntu instead of an nvidia/cuda image: the NVIDIA Container Toolkit
+# mounts the driver, Blender only needs that, and PyTorch brings its own CUDA
+# libraries (on the volume, see setup-comfyui.sh).
+FROM ubuntu:24.04
 
 # --- Versions (all overridable via --build-arg) ------------------------------
 ARG BLENDER_VERSION=5.2.3
@@ -42,7 +43,6 @@ ARG KICAD_PPA=kicad-10.0-releases
 ARG KICAD_3D_MODELS=false
 ARG KICAD_MCP_REF=main
 ARG COMFYUI_REF=master
-ARG TORCH_CUDA=cu128
 ARG COMFY_MCP_VERSION=0.10.0
 ARG DUFS_VERSION=0.47.0
 ARG BUILD123D_MCP_VERSION=0.3.91
@@ -84,8 +84,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     ENABLE_VOICE=0 \
     ENABLE_COMFYUI_3D=0 \
     KOKORO_VERSION=0.9.4 \
-    VOICE_TORCH_VERSION=2.8.0 \
-    VOICE_TORCH_INDEX=https://download.pytorch.org/whl/cu128 \
+    TORCH_VERSION=2.11.0 \
+    TORCH_INDEX=https://download.pytorch.org/whl/cu128 \
     VOICE_IDLE_MINUTES=10 \
     HF_HOME=/workspace/.cache/huggingface \
     PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
@@ -136,14 +136,6 @@ RUN add-apt-repository -y "ppa:kicad/${KICAD_PPA}" \
     && kicad-cli version \
     && python3 -c "import pcbnew; print('pcbnew', pcbnew.Version())"
 
-# --- KiCad-MCP (Seeed Studio) -------------------------------------------------
-# Runs on the system Python so that "import pcbnew" from the KiCad package works.
-RUN git clone --depth 1 --branch "${KICAD_MCP_REF}" https://github.com/Seeed-Studio/kicad-mcp-server.git /opt/kicad-mcp/src \
-    && uv venv --system-site-packages --python /usr/bin/python3 /opt/kicad-mcp/.venv \
-    && uv pip install --python /opt/kicad-mcp/.venv/bin/python /opt/kicad-mcp/src \
-    && /opt/kicad-mcp/.venv/bin/python -c "import kicad_mcp_server, pcbnew; print('kicad-mcp ok')" \
-    && uv cache clean
-
 # --- Blender ------------------------------------------------------------------
 RUN series="${BLENDER_VERSION%.*}" \
     && curl -fL "https://download.blender.org/release/Blender${series}/blender-${BLENDER_VERSION}-linux-x64.tar.xz" \
@@ -151,17 +143,6 @@ RUN series="${BLENDER_VERSION%.*}" \
     && mv "/opt/blender-${BLENDER_VERSION}-linux-x64" /opt/blender \
     && ln -s /opt/blender/blender /usr/local/bin/blender \
     && blender --version
-
-# --- MCP for Blender (server + addon from the same package) --------------------
-RUN uv tool install --python /usr/bin/python3 "mcp-for-blender==${BLENDER_MCP_VERSION}" \
-    && addon="$(find "${UV_TOOL_DIR}/mcp-for-blender" -path '*/blender_mcp/bundled/addon.py' | head -n1)" \
-    && test -n "${addon}" \
-    && dest="/root/.config/blender/${BLENDER_VERSION%.*}/scripts/addons" \
-    && mkdir -p "${dest}" \
-    && cp "${addon}" "${dest}/blender_mcp.py" \
-    && blender -b --factory-startup --python-exit-code 1 --addons blender_mcp --python-expr \
-        "import addon_utils; assert addon_utils.check('blender_mcp')[1], 'blender_mcp addon not loaded'; print('blender_mcp addon ok')" \
-    && uv cache clean
 
 # --- FreeCAD (AppImage, extracted -> no FUSE needed) ---------------------------
 RUN curl -fL -o /tmp/FreeCAD.AppImage "${FREECAD_URL}" \
@@ -171,24 +152,6 @@ RUN curl -fL -o /tmp/FreeCAD.AppImage "${FREECAD_URL}" \
     && rm /tmp/FreeCAD.AppImage \
     && test -x /opt/freecad/AppRun
 
-# --- FreeCAD-MCP (neka-nat): addon into the system Mod directory, server via uv -
-# The addon is patched so that the RPC server starts automatically on launch.
-RUN git clone --depth 1 --branch "${FREECAD_MCP_REF}" https://github.com/neka-nat/freecad-mcp.git /tmp/freecad-mcp \
-    && marker="$(find /opt/freecad -path '*/Mod/PartDesign/InitGui.py' | head -n1)" \
-    && test -n "${marker}" \
-    && moddir="$(dirname "$(dirname "${marker}")")" \
-    && cp -r /tmp/freecad-mcp/addon/FreeCADMCP "${moddir}/" \
-    && sed -i 's/"auto_start_rpc": False/"auto_start_rpc": True/' "${moddir}/FreeCADMCP/rpc_server/settings.py" \
-    && grep -q '"auto_start_rpc": True' "${moddir}/FreeCADMCP/rpc_server/settings.py" \
-    && uv tool install --python /usr/bin/python3 /tmp/freecad-mcp \
-    && rm -rf /tmp/freecad-mcp \
-    && uv cache clean \
-    && echo "FreeCADMCP addon -> ${moddir}"
-
-# --- build123d-MCP (CAD as Python code) ---------------------------------------
-RUN uv tool install --python /usr/bin/python3 "build123d-mcp==${BUILD123D_MCP_VERSION}" \
-    && build123d-mcp --version \
-    && uv cache clean
 
 # --- Inkscape (command line) + Python packages for the export extensions ------
 RUN add-apt-repository -y "ppa:${INKSCAPE_PPA}" \
@@ -215,13 +178,11 @@ RUN curl -fsSL https://build.openmodelica.org/apt/openmodelica.asc \
     && omc load-msl.mos | grep -x true \
     && rm load-msl.mos
 
-# --- ngspice + SPICEBridge MCP ------------------------------------------------
+# --- ngspice ------------------------------------------------------------------
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ngspice \
     && rm -rf /var/lib/apt/lists/* \
-    && ngspice --version \
-    && uv tool install --python /usr/bin/python3 "spicebridge==${SPICEBRIDGE_VERSION}" \
-    && uv cache clean
+    && ngspice --version
 
 # --- Node.js + Playwright MCP with Chromium ------------------------------------
 RUN curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR}.x" | bash - \
@@ -233,22 +194,57 @@ RUN curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR}.x" | bash - \
     && rm -rf /var/lib/apt/lists/* \
     && playwright-mcp --version
 
-# --- ComfyUI + comfy-cli + official Comfy MCP server --------------------------
+# --- ComfyUI (code only) ------------------------------------------------------
+# Its venv with PyTorch and the CUDA libraries (about 8 GB) is set up on the
+# volume on first start (setup-comfyui.sh), .venv points there. comfy-cli is
+# installed into that venv; its settings are written here directly.
 RUN git clone --depth 1 --branch "${COMFYUI_REF}" https://github.com/Comfy-Org/ComfyUI.git /opt/ComfyUI \
-    && uv venv --python /usr/bin/python3 /opt/ComfyUI/.venv \
-    && uv pip install --python /opt/ComfyUI/.venv/bin/python \
-        torch torchvision torchaudio --index-url "https://download.pytorch.org/whl/${TORCH_CUDA}" \
-    && uv pip install --python /opt/ComfyUI/.venv/bin/python \
-        -r /opt/ComfyUI/requirements.txt "comfy-cli>=1.14" \
-    && /opt/ComfyUI/.venv/bin/comfy --skip-prompt set-default /opt/ComfyUI \
-    && (/opt/ComfyUI/.venv/bin/comfy --skip-prompt tracking disable || true) \
+    && mkdir -p /root/.config/comfy-cli \
+    && printf '[DEFAULT]\ndefault_workspace = /opt/ComfyUI\nenable_tracking = False\n' \
+        > /root/.config/comfy-cli/config.ini
+
+# --- Third-party MCP servers --------------------------------------------------
+# In one layer with hardlinks from the uv cache, so dependencies they share
+# (numpy, scipy, matplotlib, mcp, pydantic …) are stored only once.
+# - KiCad-MCP (Seeed Studio) runs on the system Python so that "import pcbnew"
+#   from the KiCad package works.
+# - MCP for Blender: the addon comes from the same package as the server.
+# - FreeCAD-MCP (neka-nat): the addon goes into the system Mod directory and is
+#   patched so that the RPC server starts automatically on launch.
+RUN export UV_LINK_MODE=hardlink \
+    && git clone --depth 1 --branch "${KICAD_MCP_REF}" https://github.com/Seeed-Studio/kicad-mcp-server.git /opt/kicad-mcp/src \
+    && uv venv --system-site-packages --python /usr/bin/python3 /opt/kicad-mcp/.venv \
+    && uv pip install --python /opt/kicad-mcp/.venv/bin/python /opt/kicad-mcp/src \
+    && /opt/kicad-mcp/.venv/bin/python -c "import kicad_mcp_server, pcbnew; print('kicad-mcp ok')" \
+    && uv tool install --python /usr/bin/python3 "mcp-for-blender==${BLENDER_MCP_VERSION}" \
+    && addon="$(find "${UV_TOOL_DIR}/mcp-for-blender" -path '*/blender_mcp/bundled/addon.py' | head -n1)" \
+    && test -n "${addon}" \
+    && dest="/root/.config/blender/${BLENDER_VERSION%.*}/scripts/addons" \
+    && mkdir -p "${dest}" \
+    && cp "${addon}" "${dest}/blender_mcp.py" \
+    && blender -b --factory-startup --python-exit-code 1 --addons blender_mcp --python-expr \
+        "import addon_utils; assert addon_utils.check('blender_mcp')[1], 'blender_mcp addon not loaded'; print('blender_mcp addon ok')" \
+    && git clone --depth 1 --branch "${FREECAD_MCP_REF}" https://github.com/neka-nat/freecad-mcp.git /tmp/freecad-mcp \
+    && marker="$(find /opt/freecad -path '*/Mod/PartDesign/InitGui.py' | head -n1)" \
+    && test -n "${marker}" \
+    && moddir="$(dirname "$(dirname "${marker}")")" \
+    && cp -r /tmp/freecad-mcp/addon/FreeCADMCP "${moddir}/" \
+    && sed -i 's/"auto_start_rpc": False/"auto_start_rpc": True/' "${moddir}/FreeCADMCP/rpc_server/settings.py" \
+    && grep -q '"auto_start_rpc": True' "${moddir}/FreeCADMCP/rpc_server/settings.py" \
+    && echo "FreeCADMCP addon -> ${moddir}" \
+    && uv tool install --python /usr/bin/python3 /tmp/freecad-mcp \
+    && rm -rf /tmp/freecad-mcp \
+    && uv tool install --python /usr/bin/python3 "build123d-mcp==${BUILD123D_MCP_VERSION}" \
+    && build123d-mcp --version \
+    && uv tool install --python /usr/bin/python3 "spicebridge==${SPICEBRIDGE_VERSION}" \
     && uv tool install --python /usr/bin/python3 "comfy-mcp==${COMFY_MCP_VERSION}" \
     && uv cache clean
 
 # --- Custom MCP servers (Inkscape and OpenModelica built in, Voice is installed on the volume
 #     on demand, see setup-voice.sh) -------------------------------------------
 COPY servers/ /opt/sandburg/servers/
-RUN uv tool install --python /usr/bin/python3 /opt/sandburg/servers/inkscape-mcp \
+RUN export UV_LINK_MODE=hardlink \
+    && uv tool install --python /usr/bin/python3 /opt/sandburg/servers/inkscape-mcp \
     && uv tool install --python /usr/bin/python3 /opt/sandburg/servers/openmodelica-mcp \
     && uv tool install --python /usr/bin/python3 /opt/sandburg/servers/disabled-mcp \
     && uv cache clean

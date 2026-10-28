@@ -45,7 +45,7 @@ docker push ghcr.io/<user>/sandburg:latest
 
 After the first push, set the visibility to *public* in the package settings on GitHub so RunPod can pull the image.
 
-The image is large (roughly 18 GB, mostly PyTorch, FreeCAD and Chromium). `--build-arg KICAD_3D_MODELS=true` adds the KiCad 3D models. All versions are defined as `ARG`s at the top of the `Dockerfile`.
+The image is large (roughly 11 GB, mostly FreeCAD, build123d, Blender and Chromium). PyTorch for ComfyUI is not in the image but is installed on the volume on first start (see [ComfyUI on the volume](#comfyui-on-the-volume)). `--build-arg KICAD_3D_MODELS=true` adds the KiCad 3D models. All versions are defined as `ARG`s at the top of the `Dockerfile`.
 
 ## 2. Create a Tailscale auth key
 
@@ -63,7 +63,7 @@ Tailscale runs in userspace mode and needs neither `/dev/net/tun` nor extra priv
 |---|---|
 | Container Image | `ghcr.io/<user>/sandburg:latest` |
 | Container Disk | 50 GB |
-| Volume Disk | 50 GB or more (ComfyUI and speech models), mount path `/workspace` |
+| Volume Disk | 50 GB or more (PyTorch for ComfyUI, ComfyUI and speech models), mount path `/workspace` |
 | Expose HTTP/TCP Ports | **none**, everything goes through Tailscale |
 | Environment Variables | `TS_AUTHKEY` (ideally as a RunPod secret); optional `SANDBURG_TOKEN`, `TS_HOSTNAME`, `ENABLE_VOICE=1`, `ENABLE_COMFYUI_3D=1` |
 
@@ -80,7 +80,7 @@ claude plugin install sandburg@sandburg
 
 Or in a running session: `/plugin marketplace add trn84/sandburg`, then `/plugin install sandburg@sandburg`.
 
-Then set the address (default `sandburg`, i.e. the Tailscale name) and the token (`cat /workspace/.sandburg-token` on the pod) in a Claude Code session with `/plugin configure sandburg@sandburg`. The token is stored in the system keychain. In the VS Code extension, where `/plugin` is not available, use `claude plugin configure sandburg@sandburg --values-stdin` in a terminal instead (see [Running locally](#running-locally) for an example). After that, all services are connected. The plugin also ships a skill that explains the folders and workflows on the Sandburg to Claude, and the `sandburg` command for file transfer. Address and token can be changed later under `/plugin` → **Installed** → *sandburg* → **Configure options**.
+Then set the address (default `sandburg`, i.e. the Tailscale name) and the token (`cat /workspace/.sandburg-token` on the pod) in a Claude Code session with `/plugin configure sandburg@sandburg`. The token is stored in the system keychain. In the VS Code extension, where `/plugin` is not available, use `claude plugin configure sandburg@sandburg --values-stdin` in a terminal instead (see [Switching the plugin](docs/self-hosting.md#switching-the-plugin) for an example). After that, all services are connected. The plugin also ships a skill that explains the folders and workflows on the Sandburg to Claude, and the `sandburg` command for file transfer. Address and token can be changed later under `/plugin` → **Installed** → *sandburg* → **Configure options**.
 
 It also works without the plugin: copy `client/mcp.json.example` into your project as `.mcp.json` and set `SANDBURG_TOKEN` in your shell.
 
@@ -132,6 +132,8 @@ Also:
 
 ## Optional services
 
+<a id="comfyui-on-the-volume"></a>**ComfyUI on the volume:** On first start, ComfyUI's Python environment with PyTorch and the CUDA libraries (about 8 GB) is set up on the volume under `/workspace/.sandburg/comfyui-venv`. This takes a few minutes (log: `/var/log/sandburg/comfyui.log`). Until then, the ComfyUI tools report that ComfyUI is not reachable. Later starts only install what a newer ComfyUI needs. Voice uses the same PyTorch version, and uv shares the identical files of both environments through a cache in `/workspace/.cache/uv-torch`, so PyTorch is stored only once. If `TORCH_VERSION` changes, both environments are rebuilt on the next start, and packages installed by hand into them are lost.
+
 **Voice (`ENABLE_VOICE=1`):** On first start, a separate Python environment for the speech models is set up on the volume. This takes a few minutes (log: `/var/log/sandburg/voice-setup.log`). The first speech call downloads the models. After that they stay in GPU memory and are unloaded again after 10 minutes without a call (`VOICE_IDLE_MINUTES`), so ComfyUI and Blender get the memory back.
 
 - `speak`: text of any length to WAV or MP3, with one of Kokoro's voices (`list_voices`). With `timestamps`, it also returns when each word is spoken (English only), e.g. for subtitles in sync with the speech.
@@ -151,6 +153,7 @@ Also:
 | `VNC_PASSWORD` | generated | Password for the desktop |
 | `ENABLE_BLENDER`, `_FREECAD`, `_KICAD`, `_BUILD123D`, `_INKSCAPE`, `_OPENMODELICA`, `_NGSPICE`, `_BROWSER`, `_COMFYUI`, `_VNC`, `_FILES` | `1` | Disable individual services (`0`) |
 | `ENABLE_VOICE`, `ENABLE_COMFYUI_3D` | `0` | Enable optional services (`1`) |
+| `TORCH_VERSION`, `TORCH_INDEX` | `2.11.0`, CUDA 12.8 index | PyTorch for ComfyUI and Voice. Changing it rebuilds both environments on the volume |
 | `VOICE_IDLE_MINUTES` | `10` | Unload speech models after this many minutes without a call (`0` = never) |
 | `BROWSER_VIEWPORT` | `1440x900` | Browser window size |
 | `BROWSER_MCP_ARGS` | – | Extra arguments for Playwright MCP, e.g. `--blocked-origins` |
@@ -174,7 +177,7 @@ Inside the container (RunPod web terminal, or `tailscale ssh` with `TS_EXTRA_ARG
 
 ```bash
 sandburg-status                         # processes, ports, proxy status, Tailscale, GPU
-tail -f /var/log/sandburg/blender.log   # or freecad.log, comfyui.log, voice-setup.log
+tail -f /var/log/sandburg/blender.log   # or freecad.log, comfyui.log (incl. setup), voice-setup.log
 supervisorctl -c /opt/sandburg/supervisord.conf restart blender
 ```
 
@@ -182,6 +185,7 @@ Locally: `sandburg status` checks whether the pod is reachable and the token is 
 
 - **Blender tools don't respond:** Check that port 9876 is listening. On the desktop, press `N` in Blender, open the *MCP for Blender* tab and click *Start MCP Server* if needed.
 - **FreeCAD tools don't respond:** Check that port 9875 is listening. On the desktop, open the *MCP Addon* workbench and click *Start RPC Server*. Close any first-run dialog that may be open.
+- **ComfyUI doesn't respond after the first start:** PyTorch is still being installed on the volume, see `comfyui.log`. Voice waits for this setup and vice versa.
 - **Voice doesn't respond:** Setup is still running or has failed, see `voice-setup.log`. The proxy retries the connection every 15 seconds.
 - **Browser doesn't start:** A crashed browser sometimes leaves a profile lock behind. It is cleaned up on the next start. If all else fails, delete `/workspace/.sandburg/browser-profile`.
 - **Without a GPU:** ComfyUI runs with `--cpu`, Cycles on the CPU, Voice much slower. The GUIs use Mesa on the CPU anyway, which is normal under Xvfb.
@@ -194,6 +198,7 @@ Locally: `sandburg status` checks whether the pod is reachable and the token is 
 | `servers/` | Custom MCP servers: Inkscape, OpenModelica, Voice, placeholder for disabled services |
 | `plugin/`, `.claude-plugin/marketplace.json` | Claude Code plugin and its catalog |
 | `client/mcp.json.example` | Manual setup without the plugin |
+| `docs/self-hosting.md` | Running locally or on your own server |
 | `.github/workflows/build.yml` | Image build to GHCR |
 
 **Adding a service:**
@@ -206,43 +211,9 @@ Locally: `sandburg status` checks whether the pod is reachable and the token is 
 
 If the service depends on a GUI application, also add a startup script and a `[program:…]` block in `supervisord.conf`.
 
-## Running locally
+## Running locally or on your own server
 
-The Sandburg also runs without RunPod and Tailscale, on your own machine with Docker and the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html):
-
-```bash
-cp .env.example .env      # leave TS_AUTHKEY empty, set SANDBURG_TOKEN
-docker compose pull       # prebuilt image from ghcr.io/trn84/sandburg:latest
-docker compose up -d
-# MCP:     http://localhost:9090/<service>/mcp
-# Files:   http://localhost:8090                 (user sandburg, password = token)
-# Desktop: http://localhost:6080/vnc.html
-# ComfyUI: http://localhost:8188
-```
-
-To build the image yourself instead, run `docker compose up -d --build`. Run `pull` explicitly when you want the GHCR image: if the image is missing locally, `up` builds it instead of pulling it. Set `SANDBURG_IMAGE` in `.env` to use a different image or tag.
-
-`docker compose up` reads `.env` through `env_file`, with or without `-d`. After changing `.env`, run `docker compose up -d` again, which recreates the container. `docker compose restart` keeps the old values. Logs: `docker compose logs -f`.
-
-The ports are only published on `127.0.0.1`, and the volume is the `workspace/` folder next to `docker-compose.yml`.
-
-**Switching the plugin between pod and local container:** Under `/plugin` → **Installed** → *sandburg* → **Configure options** (or `/plugin configure sandburg@sandburg`), enter:
-
-| | Address | Token |
-|---|---|---|
-| Pod | its Tailscale name (`TS_HOSTNAME`, default `sandburg`) | the pod's token (`SANDBURG_TOKEN` on RunPod, or `/workspace/.sandburg-token` on the pod) |
-| Local container | `127.0.0.1` | `SANDBURG_TOKEN` from your `.env` (or `workspace/.sandburg-token` if you left it empty) |
-
-In the VS Code extension, `/plugin` is not available. There, set the values in a terminal instead, e.g. for the local container (run in the repository, takes the token from `.env`):
-
-```bash
-printf '{"host":"127.0.0.1","token":"%s"}' "$(grep '^SANDBURG_TOKEN=' .env | cut -d= -f2-)" |
-    claude plugin configure sandburg@sandburg --values-stdin
-```
-
-and back to the pod with `{"host":"sandburg","token":"<the pod's token>"}`.
-
-Then start a new Claude Code session. The MCP servers connect with the new values, and the `sandburg` command only picks them up at session start. If you use the same `SANDBURG_TOKEN` in `.env` and on RunPod, only the address changes when you switch.
+Sandburg also runs with `docker compose`, on your own machine or on a GPU server reached through an SSH tunnel. See [docs/self-hosting.md](docs/self-hosting.md), which also covers switching the plugin between pod, local container and server.
 
 ## Licenses
 

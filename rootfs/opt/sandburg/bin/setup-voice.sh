@@ -10,7 +10,9 @@ enabled ENABLE_VOICE || { log "Voice disabled (ENABLE_VOICE=0)"; exit 0; }
 
 venv="${VOICE_VENV:-${WORKSPACE}/.sandburg/voice-venv}"
 spacy_model="https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl"
-stamp="kokoro==${KOKORO_VERSION} torch==${VOICE_TORCH_VERSION} ${VOICE_TORCH_INDEX} ${spacy_model##*/}"
+stamp="kokoro==${KOKORO_VERSION} $(torch_stamp) ${spacy_model##*/}"
+lock_torch_venvs
+use_torch_cache
 
 if [ -f "${venv}/.sandburg-stamp" ] && [ "$(< "${venv}/.sandburg-stamp")" = "${stamp}" ]; then
     log "Speech model environment present (${venv})"
@@ -20,12 +22,13 @@ else
     mkdir -p "$(dirname "${venv}")"
     uv venv --python /usr/bin/python3 "${venv}"
     # torch from the CUDA 12.8 index, so new GPUs (e.g. RTX 50xx) are supported.
+    # Installed on its own and exactly like in setup-comfyui.sh, so both venvs
+    # share its files through the cache.
+    uv pip install --python "${venv}/bin/python" --index-url "${TORCH_INDEX}" \
+        "torch==${TORCH_VERSION}"
     # misaki would download the spaCy model with pip at the first call, which the
     # uv venv doesn't have, so it is installed here.
     uv pip install --python "${venv}/bin/python" \
-        --extra-index-url "${VOICE_TORCH_INDEX}" \
-        --index-strategy unsafe-best-match \
-        "torch==${VOICE_TORCH_VERSION}" \
         "kokoro==${KOKORO_VERSION}" "misaki[en,zh]==${KOKORO_VERSION}" soundfile \
         "en_core_web_sm @ ${spacy_model}"
     printf '%s' "${stamp}" > "${venv}/.sandburg-stamp"
@@ -36,4 +39,6 @@ fi
 uv pip install --python "${venv}/bin/python" --reinstall-package sandburg-voice-mcp \
     "preshed==3.0.13" /opt/sandburg/servers/voice-mcp
 touch "${venv}/.sandburg-ready"
+# Removes leftovers of aborted downloads, which can be several GB.
+uv cache prune --quiet
 log "Voice ready. Models are loaded on the first call (including download the first time)."

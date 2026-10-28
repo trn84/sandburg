@@ -4,6 +4,7 @@ LOG_TAG=comfyui
 # shellcheck source=common.sh
 source /opt/sandburg/bin/common.sh
 enabled ENABLE_COMFYUI || idle "ComfyUI disabled (ENABLE_COMFYUI=0)"
+/opt/sandburg/bin/setup-comfyui.sh
 
 extra=()
 if ! nvidia-smi -L > /dev/null 2>&1; then

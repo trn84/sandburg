@@ -36,7 +36,7 @@ The image itself is provider-neutral; what is RunPod-specific is mostly the docu
 - Per provider, check and document:
   - how a container is started from `ghcr.io/<user>/sandburg:latest` (template, CLI, API) and how environment variables and secrets are passed
   - where the persistent volume is mounted; `WORKSPACE` can already be overridden in `common.sh`, but the README and plugin assume `/workspace`
-  - container disk size limits (the image is about 18 GB)
+  - container disk size limits (the image is about 11 GB, plus about 9 GB for PyTorch on the volume)
   - whether the container receives `SIGTERM` on stop, which the clean Tailscale logout relies on
   - whether `/dev/net/tun` exists (it would allow kernel networking, but userspace mode must keep working)
 - On full VMs (Hetzner, AWS, GCP) `docker compose` from the repository is enough. Add a short guide and possibly a cloud-init file that installs Docker, the NVIDIA toolkit and starts the Sandburg.
