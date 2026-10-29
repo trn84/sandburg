@@ -50,10 +50,11 @@ urlpath() {
     printf '%s' "${out}"
 }
 
-# curl with credentials passed via a config file so the token doesn't
-# show up in the process list
+# curl with credentials passed as config on stdin so the token doesn't
+# show up in the process list (not via <(...): native Windows curl builds
+# cannot open the /dev/fd path of a process substitution)
 fcurl() {
-    curl -fsS --config <(printf 'user = "sandburg:%s"\n' "${token}") "$@"
+    printf 'user = "sandburg:%s"\n' "${token}" | curl -fsS --config - "$@"
 }
 
 # With ?json, directories return a listing ("paths"), files only their metadata
@@ -64,8 +65,8 @@ is_dir() {
 # After an error: a readable cause instead of just "curl: (22)"
 explain() {
     local code
-    code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
-        --config <(printf 'user = "sandburg:%s"\n' "${token}") "$1" 2> /dev/null || true)"
+    code="$(printf 'user = "sandburg:%s"\n' "${token}" |
+        curl -s -o /dev/null -w '%{http_code}' --max-time 10 --config - "$1" 2> /dev/null || true)"
     case "${code}" in
         401 | 403) die "login rejected – check the token" ;;
         404) die "not found: $2" ;;
